@@ -26,15 +26,15 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.phoenix.schema.PDataType;
 import org.apache.phoenix.schema.PhoenixArray;
 import org.apache.phoenix.schema.SortOrder;
-import org.eclipse.jdt.internal.core.Assert;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
 
 /**
  * Contains factory methods for {@link ByteArrayValueMapper}s.
  */
-public class ByteArrayValueMappers {
+class ByteArrayValueMappers {
 
 	private static Log log = LogFactory.getLog(ByteArrayValueMappers.class);
 
@@ -47,10 +47,13 @@ public class ByteArrayValueMappers {
 	 *            sort order
 	 * @return the requested mapper
 	 */
-	public static ByteArrayValueMapper getMapper(PDataType type, SortOrder sortOrder, int offset, int length) {
-		Assert.isNotNull(type);
-		Assert.isNotNull(sortOrder);
-
+	static ByteArrayValueMapper getMapper(PDataType type, SortOrder sortOrder, int offset, int length) {
+		Preconditions.checkNotNull(type, "Phoenix type is required");
+		if (sortOrder == null) {
+			sortOrder = SortOrder.getDefault();
+		}
+		Preconditions.checkArgument(offset <= 0 || length > 0,
+				"If offset is positive number then length must be a positive number too.");
 		if (type.isArrayType()) {
 			return new ArrayValueMapper(type, sortOrder, offset, length);
 		} else {
@@ -66,8 +69,6 @@ public class ByteArrayValueMappers {
 		protected final int length;
 
 		protected AbstractByteValueMapper(PDataType type, SortOrder sortOrder, int offset, int length) {
-			Assert.isNotNull(type);
-			Assert.isNotNull(sortOrder);
 			this.type = type;
 			this.sortOrder = sortOrder;
 			this.offset = offset;
@@ -114,7 +115,6 @@ public class ByteArrayValueMappers {
 					result.add(Array.get(array, i));
 				}
 				return result;
-
 			}
 			throw new IllegalStateException();
 		}

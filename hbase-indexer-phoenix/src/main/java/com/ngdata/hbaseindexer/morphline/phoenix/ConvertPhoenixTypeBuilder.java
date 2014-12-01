@@ -29,6 +29,7 @@ import org.kitesdk.morphline.api.MorphlineContext;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.AbstractCommand;
 import org.kitesdk.morphline.base.Configs;
+import org.kitesdk.morphline.base.Validator;
 
 import com.google.common.collect.Lists;
 import com.ngdata.hbaseindexer.parse.ByteArrayValueMapper;
@@ -56,6 +57,7 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 			for (Config mapping : getConfigs().getConfigList(config, "fields")) {
 				fields.add(new Field(mapping));
 			}
+			validateArguments();
 		}
 
 		@Override
@@ -85,9 +87,10 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 		public Field(Config config) {
 			Configs configs = new Configs();
 			this.fieldName = configs.getString(config, "fieldName");
-			this.type = PDataType.valueOf(configs.getString(config, "type"));
-			this.sortOrder = SortOrder.valueOf(configs.getString(config, "sortOrder",
-					SortOrder.getDefault().name()));
+			this.type = new Validator<PDataType>().validateEnum(config, configs.getString(config, "type"),
+					PDataType.class);
+			this.sortOrder = new Validator<SortOrder>().validateEnum(config, configs.getString(config, "sortOrder",
+					SortOrder.getDefault().name()), SortOrder.class);
 			this.offset = configs.getInt(config, "offset", 0);
 			this.length = configs.getInt(config, "length", -1);
 			if (offset > 0 && length <= 0) {

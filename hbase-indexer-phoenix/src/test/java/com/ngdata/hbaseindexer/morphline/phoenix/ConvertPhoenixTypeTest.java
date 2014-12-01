@@ -36,6 +36,7 @@ import org.apache.solr.common.SolrInputDocument;
 import org.apache.solr.common.SolrInputField;
 import org.junit.Before;
 import org.junit.Test;
+import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.Record;
 import org.mockito.ArgumentCaptor;
 
@@ -64,7 +65,7 @@ public class ConvertPhoenixTypeTest {
 	}
 
 	@Test
-	public void testMap() throws Exception {
+	public void testConvertNumbers() throws Exception {
 		MorphlineResultToSolrMapper resultMapper = new MorphlineResultToSolrMapper();
 		resultMapper.configure(ImmutableMap.of(
 				MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM,
@@ -90,6 +91,15 @@ public class ConvertPhoenixTypeTest {
 		SolrInputDocument solrDocument = solrInputDocCaptor.getValue();
 
 		assertEquals(expectedMap(), toRecord(solrDocument).getFields());
+	}
+
+	@Test(expected = MorphlineCompilationException.class)
+	public void testTypoValidation_fails() {
+		MorphlineResultToSolrMapper resultMapper = new MorphlineResultToSolrMapper();
+		resultMapper.configure(ImmutableMap.of(
+				MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM,
+				"src/test/resources/test-morphlines/convertPhoenixTypo.conf")
+				);
 	}
 
 	private Multimap<String, Object> expectedMap() {
