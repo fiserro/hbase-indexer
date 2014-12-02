@@ -1,6 +1,6 @@
 # HBase Indexer Phoenix
 
-This module contains command for transformations from Phoenix data types in bytes to Solr documents, based on Cloudera Morphlines.
+This module contains command for transformations from Phoenix data types in bytes to Solr documents, based on Kite Morphlines.
 To load Phoenix data in bytes use the `extractHBaseCells` command and then `convertPhoenixType` command to convert bytes to values.
 
 ## Example:

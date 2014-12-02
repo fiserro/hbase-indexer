@@ -64,11 +64,11 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 		protected boolean doProcess(Record record) {
 			for (Field field : fields) {
 				@SuppressWarnings("unchecked")
-				List<byte[]> list = Lists.newArrayList(record.get(field.fieldName));
-				record.removeAll(field.fieldName);
+				List<byte[]> list = Lists.newArrayList(record.get(field.field));
+				record.removeAll(field.field);
 				for (byte[] bs : list) {
 					for (Object value : field.map(bs)) {
-						record.put(field.fieldName, value);
+						record.put(field.field, value);
 					}
 				}
 			}
@@ -77,7 +77,7 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 	}
 
 	private static final class Field {
-		private final String fieldName;
+		private final String field;
 		private final PDataType type;
 		private final SortOrder sortOrder;
 		private final int offset;
@@ -86,7 +86,7 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 
 		public Field(Config config) {
 			Configs configs = new Configs();
-			this.fieldName = configs.getString(config, "fieldName");
+			this.field = configs.getString(config, "field");
 			this.type = new Validator<PDataType>().validateEnum(config, configs.getString(config, "type"),
 					PDataType.class);
 			this.sortOrder = new Validator<SortOrder>().validateEnum(config, configs.getString(config, "sortOrder",
@@ -98,6 +98,7 @@ public class ConvertPhoenixTypeBuilder implements CommandBuilder {
 						config);
 			}
 			this.mapper = ByteArrayValueMappers.getMapper(type, sortOrder, offset, length);
+			configs.validateArguments(config);
 		}
 
 		public Collection<? extends Object> map(byte[] bytes) {
