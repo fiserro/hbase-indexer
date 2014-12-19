@@ -23,6 +23,7 @@ import static org.mockito.Mockito.verify;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -42,6 +43,9 @@ import org.mockito.ArgumentCaptor;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
 import com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper;
 import com.ngdata.hbaseindexer.parse.SolrUpdateWriter;
@@ -90,7 +94,47 @@ public class ConvertPhoenixTypeTest {
 
 		SolrInputDocument solrDocument = solrInputDocCaptor.getValue();
 
-		assertEquals(expectedMap(), toRecord(solrDocument).getFields());
+		Multimap<String, Object> expectedMap = ArrayListMultimap.create();
+		for (Integer i : INTS) {
+			expectedMap.put("fieldA", i);
+		}
+		for (Long l : LONGS) {
+			expectedMap.put("fieldB", l);
+		}
+
+		assertEquals(expectedMap, toRecord(solrDocument).getFields());
+	}
+
+	@Test
+	public void testMapRowkey() throws Exception {
+		MorphlineResultToSolrMapper resultMapper = new MorphlineResultToSolrMapper();
+		resultMapper.configure(ImmutableMap.of(
+				MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM,
+				"src/test/resources/test-morphlines/mapPhoenixRowkey.conf")
+				);
+
+		int salt = 5656;
+		Date date = new Date();
+		int id = 4666;
+
+		ByteBuffer row = ByteBuffer.allocate(Bytes.SIZEOF_INT + Bytes.SIZEOF_LONG + Bytes.SIZEOF_INT);
+		row.put(PDataType.INTEGER.toBytes(salt));
+		row.put(PDataType.DATE.toBytes(date));
+		row.put(PDataType.INTEGER.toBytes(id));
+		byte[] rowkeyBytes = row.array();
+
+		KeyValue kvA = new KeyValue(rowkeyBytes, System.currentTimeMillis());
+		Result result = newResult(Lists.newArrayList(kvA));
+
+		Multimap expectedMap = ImmutableMultimap.of("salt", salt, "date", date, "id", id);
+
+		resultMapper.map(result, updateWriter);
+		verify(updateWriter).add(solrInputDocCaptor.capture());
+
+		SolrInputDocument solrDocument = solrInputDocCaptor.getValue();
+		ListMultimap<String, Object> resultMap = toRecord(solrDocument).getFields();
+		resultMap.removeAll("fieldR"); // remove rowkey - like sanitizeUnknownSolrFields
+		assertEquals(expectedMap, resultMap);
 	}
 
 	@Test(expected = MorphlineCompilationException.class)
@@ -100,17 +144,6 @@ public class ConvertPhoenixTypeTest {
 				MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM,
 				"src/test/resources/test-morphlines/convertPhoenixTypo.conf")
 				);
-	}
-
-	private Multimap<String, Object> expectedMap() {
-		Multimap<String, Object> expectedMap = ArrayListMultimap.create();
-		for (Integer i : INTS) {
-			expectedMap.put("fieldA", i);
-		}
-		for (Long l : LONGS) {
-			expectedMap.put("fieldB", l);
-		}
-		return expectedMap;
 	}
 
 	private Record toRecord(SolrInputDocument doc) {
