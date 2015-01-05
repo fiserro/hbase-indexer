@@ -96,9 +96,14 @@
         <artifactId>hbase-indexer-engine</artifactId>
         <version>${project.version}</version>
       </dependency>
-      <dependency>
+       <dependency>
         <groupId>com.ngdata</groupId>
         <artifactId>hbase-indexer-morphlines</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-phoenix</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

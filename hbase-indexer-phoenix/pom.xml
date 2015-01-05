@@ -105,6 +105,6 @@
   </build>
 
   <properties>
-    <version.phoenix>3.0.0-incubating</version.phoenix>
+    <version.phoenix>4.2.2</version.phoenix>
   </properties>
 </project>
