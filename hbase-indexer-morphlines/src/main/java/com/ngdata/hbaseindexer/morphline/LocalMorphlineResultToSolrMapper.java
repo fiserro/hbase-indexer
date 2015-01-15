@@ -238,8 +238,7 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
                 Notifications.notifyStartSession(morphline);
                 if (!morphline.process(record)) {
                     numFailedRecords.mark();
-                    LOG.warn("Morphline {}:{} failed to process record: {}", morphlineFileAndId, 
-                            morphline.getClass().getSimpleName(), record);
+                    LOG.warn("Morphline {} failed to process record: {}", morphlineFileAndId, record);
                 }
             } catch (RuntimeException t) {
                 numExceptionRecords.mark();
