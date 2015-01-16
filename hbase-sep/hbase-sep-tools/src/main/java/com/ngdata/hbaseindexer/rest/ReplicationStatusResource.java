@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.hadoop.conf.Configuration;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.ObjectNode;
@@ -43,7 +44,13 @@ public class ReplicationStatusResource {
     @GET
     @Produces("application/json")
     public Response get(@Context UriInfo uriInfo) throws Exception {
-        ZooKeeperItf zk = ZkUtil.connect("localhost", 30000);
+    	Configuration conf = new Configuration();
+        conf.addResource("hbase-default.xml");
+        conf.addResource("hbase-site.xml");
+        conf.addResource("hbase-indexer-default.xml");
+        conf.addResource("hbase-indexer-site.xml");
+        String zkConnString = conf.get("hbase.zookeeper.quorum");
+        ZooKeeperItf zk = ZkUtil.connect(zkConnString, 30000);
         ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, 60010);
         ReplicationStatus replicationStatus = retriever.collectStatusFromZooKeepeer();
         try {
