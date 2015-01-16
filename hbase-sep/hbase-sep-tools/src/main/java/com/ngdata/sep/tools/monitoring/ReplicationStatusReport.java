@@ -70,6 +70,7 @@ public class ReplicationStatusReport {
 					serverNode.put("Last slept", "Last slept " + formatDuration(sleepAge) + " ago (muliplier: "
 							+ status.sleepMultiplier + "): " + status.sleepReason);
 				}
+				servers.add(server);
 			}
 		}
 		return mapper.writeValueAsString(root);
