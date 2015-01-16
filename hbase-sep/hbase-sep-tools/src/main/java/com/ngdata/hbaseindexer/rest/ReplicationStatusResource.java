@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.ngdata.sep.tools.monitoring;
+package com.ngdata.hbaseindexer.rest;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -21,16 +21,17 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import com.ngdata.sep.tools.monitoring.ReplicationStatus;
+import com.ngdata.sep.tools.monitoring.ReplicationStatusRetriever;
 import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 
 
-@Path("indexer")
+@Path("replication-status")
 public class ReplicationStatusResource {
 
     @GET
-    @Path("replication-status")
     @Produces("application/json")
     public ReplicationStatus get(@Context UriInfo uriInfo) throws Exception {
         ZooKeeperItf zk = ZkUtil.connect("localhost", 30000);
