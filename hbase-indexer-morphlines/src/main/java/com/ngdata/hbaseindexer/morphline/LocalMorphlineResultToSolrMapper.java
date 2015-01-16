@@ -24,6 +24,7 @@ import java.util.NavigableSet;
 import java.util.TreeMap;
 
 import com.ngdata.hbaseindexer.ConfigureUtil;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -32,7 +33,6 @@ import org.apache.solr.common.SolrInputDocument;
 import org.codehaus.jackson.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.kitesdk.morphline.api.Command;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.Record;
@@ -41,6 +41,7 @@ import org.kitesdk.morphline.base.FaultTolerance;
 import org.kitesdk.morphline.base.Fields;
 import org.kitesdk.morphline.base.Metrics;
 import org.kitesdk.morphline.base.Notifications;
+
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
@@ -53,6 +54,7 @@ import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.parse.SolrUpdateWriter;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
+
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -105,7 +107,19 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
             getBooleanParameter(FaultTolerance.IS_IGNORING_RECOVERABLE_EXCEPTIONS, false, params),
             getStringParameter(FaultTolerance.RECOVERABLE_EXCEPTION_CLASSES,
                                SolrServerException.class.getName(), params));
-
+        if (params.containsKey("morphlineString")) {
+            File tempDir = com.google.common.io.Files.createTempDir();
+            tempDir.deleteOnExit();
+            File file = new File(tempDir, "moprhline.conf");
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter(file, false);
+                fw.write(params.get("morphlineString"));
+                fw.close();
+            } catch (java.io.IOException e) {
+                e.printStackTrace();
+            }
+            params.put(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM, file.getAbsolutePath());
+        }
         String morphlineFile = params.get(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM);
         String morphlineId = params.get(MorphlineResultToSolrMapper.MORPHLINE_ID_PARAM);
         if (morphlineFile == null || morphlineFile.trim().length() == 0) {
