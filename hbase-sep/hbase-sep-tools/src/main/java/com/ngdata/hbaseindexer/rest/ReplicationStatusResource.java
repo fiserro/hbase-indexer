@@ -19,13 +19,22 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.node.ArrayNode;
+import org.codehaus.jackson.node.ObjectNode;
+
+import com.google.common.base.Charsets;
 import com.ngdata.sep.tools.monitoring.ReplicationStatus;
+import com.ngdata.sep.tools.monitoring.ReplicationStatusReport;
 import com.ngdata.sep.tools.monitoring.ReplicationStatusRetriever;
 import com.ngdata.sep.util.io.Closer;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import com.sun.jersey.json.impl.provider.entity.JSONArrayProvider;
 
 
 @Path("replication-status")
@@ -33,14 +42,19 @@ public class ReplicationStatusResource {
 
     @GET
     @Produces("application/json")
-    public ReplicationStatus get(@Context UriInfo uriInfo) throws Exception {
+    public Response get(@Context UriInfo uriInfo) throws Exception {
         ZooKeeperItf zk = ZkUtil.connect("localhost", 30000);
         ReplicationStatusRetriever retriever = new ReplicationStatusRetriever(zk, 60010);
         ReplicationStatus replicationStatus = retriever.collectStatusFromZooKeepeer();
-        retriever.addStatusFromJmx(replicationStatus);
-//        ReplicationStatusReport.printReport(replicationStatus, System.out);
+        try {
+        	retriever.addStatusFromJmx(replicationStatus);
+		} catch (Exception e) {
+		}
+
+        String json = ReplicationStatusReport.toJson(replicationStatus);
+        
         Closer.close(zk);
-        return replicationStatus;
+        return Response.ok(json, new MediaType("application", "json")).build();
     }
 	
 }
