@@ -19,7 +19,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <properties>
-    <version.solr>4.4.0</version.solr>
+    <version.solr>4.10.2</version.solr>
     <version.guava>11.0.2</version.guava>
     <version.joda-time>1.6</version.joda-time>
     <version.slf4j>1.7.5</version.slf4j>
@@ -35,7 +35,7 @@
     <version.zookeeper>3.4.5-cdh4.4.0</version.zookeeper>
     <version.jackson>1.8.8</version.jackson>
     <version.httpclient>4.2.5</version.httpclient>
-    <version.kite>0.13.0</version.kite>
+    <version.kite>0.17.2-SNAPSHOT</version.kite>
     <version.search>1.2.0</version.search>
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
     <version.jersey>1.17</version.jersey>
@@ -603,6 +603,7 @@
 
       <dependencyManagement>
         <dependencies>
+
           <dependency>
             <groupId>com.ngdata</groupId>
             <artifactId>hbase-sep-impl</artifactId>
@@ -785,6 +786,16 @@
       </snapshots>
     </repository>
 
+    <repository>
+      <id>nexus</id>
+      <url>http://mvn.ccl/nexus/content/groups/public/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
   </repositories>
 
   <pluginRepositories>
@@ -799,6 +810,17 @@
       <releases>
         <updatePolicy>never</updatePolicy>
       </releases>
+    </pluginRepository>
+    
+    <pluginRepository>
+      <id>nexus</id>
+      <url>http://mvn.ccl/nexus/content/groups/public/</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
     </pluginRepository>
   </pluginRepositories>
 

@@ -29,6 +29,12 @@
     <relativePath>..</relativePath>
   </parent>
 
+  <properties>
+    <version.kite-elasticsearch>0.1.0</version.kite-elasticsearch>
+    <version.elasticsearch>1.4.0</version.elasticsearch>
+    <version.sbks-protos>0.1-protobuf-2.5.0-SNAPSHOT</version.sbks-protos>
+  </properties>
+  
   <dependencies>
     <dependency>
       <groupId>com.ngdata</groupId>
@@ -45,6 +51,31 @@
     <dependency>
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-sep-tools</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.ngdata</groupId>
+      <artifactId>hbase-indexer-phoenix</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.kitesdk</groupId>
+      <artifactId>kite-morphlines-protobuf</artifactId>
+      <version>${version.kite}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sematext</groupId>
+      <artifactId>kite-morphlines-elasticsearch</artifactId>
+      <version>${version.kite-elasticsearch}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.elasticsearch</groupId>
+      <artifactId>elasticsearch</artifactId>
+      <version>${version.elasticsearch}
+      </version>
+    </dependency>
+    <dependency>
+      <groupId>com.socialbakers.protobuf</groupId>
+      <artifactId>sbks-protos</artifactId>
+      <version>${version.sbks-protos}</version>
     </dependency>
   </dependencies>
 
