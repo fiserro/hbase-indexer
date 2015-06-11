@@ -35,7 +35,7 @@
     <version.zookeeper>3.4.5-cdh4.4.0</version.zookeeper>
     <version.jackson>1.8.8</version.jackson>
     <version.httpclient>4.2.5</version.httpclient>
-    <version.kite>0.17.2-SNAPSHOT</version.kite>
+    <version.kite>1.0.0</version.kite>
     <version.search>1.2.0</version.search>
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
     <version.jersey>1.17</version.jersey>
@@ -81,7 +81,7 @@
     <module>hbase-sep</module>
     <module>hbase-indexer-mr</module>
     <module>hbase-indexer-dist</module>
-    <module>hbase-indexer-phoenix</module>
+    
   </modules>
 
   <dependencyManagement>
@@ -99,11 +99,6 @@
        <dependency>
         <groupId>com.ngdata</groupId>
         <artifactId>hbase-indexer-morphlines</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.ngdata</groupId>
-        <artifactId>hbase-indexer-phoenix</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -433,6 +428,11 @@
         <groupId>org.kohsuke</groupId>
         <artifactId>akuma</artifactId>
         <version>1.9</version>
+      </dependency>
+      <dependency>
+        <groupId>com.socialbakers</groupId>
+        <artifactId>hbase-sbks-utils</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -831,10 +831,17 @@
       <name>NGDATA OSS Releases</name>
       <url>http://mvnrepo.ngdata.com/content/repositories/oss-releases</url>
     </repository>
+    <!-- 
     <snapshotRepository>
       <id>ngdata.snapshots</id>
       <name>NGDATA Snapshots</name>
       <url>http://mvnrepo.ngdata.com/content/repositories/snapshots</url>
+    </snapshotRepository>
+     -->
+    <snapshotRepository>
+      <id>nexus</id>
+      <name>Snapshots</name>
+      <url>http://mvn.ccl/nexus/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
 

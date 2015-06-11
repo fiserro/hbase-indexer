@@ -35,6 +35,10 @@
 
   <dependencies>
     <dependency>
+      <groupId>com.socialbakers</groupId>
+      <artifactId>hbase-sbks-utils</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-engine</artifactId>
     </dependency>
@@ -279,6 +283,7 @@
         </configuration>
       </plugin>
       
+      <!-- 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -303,6 +308,7 @@
           </execution>
         </executions>
       </plugin>
+       -->
     </plugins>
   </build>
 </project>

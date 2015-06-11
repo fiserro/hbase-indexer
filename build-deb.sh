@@ -17,10 +17,10 @@
 #!/bin/bash -eu
 
 VERSION=1.6
-SBKS_VERSION=1
-
-if [ ! -z $( grep -R hbase-indexer-$VERSION~sbks~$SBKS_VERSION) ]; then
-	echo "hbase-indexer-$VERSION~sbks~$SBKS_VERSION already exists, please bump sbks version"
+SBKS_VERSION=25
+filename=hbase-indexer_$VERSION~sbks~$SBKS_VERSION
+if [ ! -z $( find -name "$filename"_* ) ]; then
+	echo "$filename already exists, please bump sbks version"
 	exit 1
 fi
 
@@ -30,7 +30,9 @@ cleanup() {
 }
 cleanup
 
-mvn package -Pdist -DskipTests -Dhbase.api=0.98
+mvn clean package -Pdist -DskipTests -Dhbase.api=0.98
+
+rc=$?; if [ $rc != 0 ]; then exit $rc; fi
 
 cd hbase-indexer-dist/target/
 

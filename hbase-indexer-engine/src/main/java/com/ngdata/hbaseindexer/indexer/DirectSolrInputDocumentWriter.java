@@ -138,6 +138,13 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
      */
     @Override
     public void deleteById(int shard, List<String> idsToDelete) throws SolrServerException, IOException {
+
+        if (true) {
+            log.warn("These documents should be deleted but it's not gonna happen because of elasticsearch: " 
+                    + idsToDelete);
+            return;
+        }
+
         try {
             solrServer.deleteById(idsToDelete);
             indexDeleteMeter.mark(idsToDelete.size());

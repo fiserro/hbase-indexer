@@ -86,6 +86,7 @@ class HBaseIndexingOptions extends OptionsBridge {
     public String hbaseStartTimeString;
     public String hbaseEndTimeString;
     public String hbaseTimestampFormat;
+    public String regionSplit;
     public boolean overwriteOutputDir;
     public boolean clearIndex;
 
@@ -127,7 +128,7 @@ class HBaseIndexingOptions extends OptionsBridge {
         evaluateIndexingSpecification();
         evaluateOutputDir();
         evaluateGoLiveArgs();
-        evaluateShards();
+//        evaluateShards();
         evaluateNumReducers();
         evaluateScan();
     }

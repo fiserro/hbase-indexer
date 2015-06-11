@@ -43,6 +43,8 @@ import org.apache.solr.hadoop.ForkedToolRunnerHelpFormatter;
 import org.apache.solr.hadoop.PathArgumentType;
 import org.apache.solr.hadoop.dedup.RetainMostRecentUpdateConflictResolver;
 
+import com.socialbakers.mapreduce.RegionSplitTableInputFormat;
+
 /**
  * See http://argparse4j.sourceforge.net and for details see
  * http://argparse4j.sourceforge.net/usage.html
@@ -167,6 +169,10 @@ class HBaseIndexerArgumentParser {
                       "If this parameter is omitted then the timestamps are interpreted as number of " +
                       "milliseconds since the standard epoch (Unix time). " +
                       "Example: yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+
+        Argument regionSplit = scanArgumentGroup.addArgument("--region-split")
+                .metavar("STRING")
+                .help("How many time split each region. 1 splits one time to two splits.");
 
         ArgumentGroup solrClusterInfoGroup = parser.addArgumentGroup("Solr cluster arguments")
                 .description(
@@ -512,6 +518,7 @@ class HBaseIndexerArgumentParser {
         opts.hbaseStartTimeString = ns.getString(startTimeArg.getDest());
         opts.hbaseEndTimeString = ns.getString(endTimeArg.getDest());
         opts.hbaseTimestampFormat = ns.getString(timestampFormatArg.getDest());
+        opts.regionSplit = ns.getString(regionSplit.getDest());
 
         try {
             try {

@@ -29,12 +29,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Charsets;
-import com.ngdata.hbaseindexer.SolrConnectionParams;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
-import com.ngdata.hbaseindexer.conf.IndexerConf;
-import com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.fs.FileSystem;
@@ -57,6 +51,15 @@ import org.apache.solr.hadoop.SolrInputDocumentWritable;
 import org.apache.solr.hadoop.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
+import com.ngdata.hbaseindexer.SolrConnectionParams;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper;
+import com.socialbakers.mapreduce.RegionSplitMultiTableInputFormat;
+import com.socialbakers.mapreduce.RegionSplitTableInputFormat;
 
 /**
  * Top-level tool for running MapReduce-based indexing pipelines over HBase tables.
@@ -151,13 +154,16 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
                 Text.class,
                 SolrInputDocumentWritable.class,
                 job);
-
+        
+        conf.set(RegionSplitTableInputFormat.REGION_SPLIT, hbaseIndexingOpts.regionSplit);
+        job.setInputFormatClass(RegionSplitMultiTableInputFormat.class);
+        
         // explicitely set hbase configuration on the job because the TableMapReduceUtil overwrites it with the hbase defaults
         // (see HBASE-4297 which is not really fixed in hbase 0.94.6 on all code paths)
         HBaseConfiguration.merge(job.getConfiguration(), getConf());
 
         int mappers = new JobClient(job.getConfiguration()).getClusterStatus().getMaxMapTasks(); // MR1
-        //mappers = job.getCluster().getClusterStatus().getMapSlotCapacity(); // Yarn only
+//        mappers = job.getCluster().getClusterStatus().getMapSlotCapacity(); // Yarn only
         LOG.info("Cluster reports {} mapper slots", mappers);
 
         LOG.info("Using these parameters: " +
@@ -181,7 +187,7 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
             if (!ForkedMapReduceIndexerTool.waitForCompletion(job, hbaseIndexingOpts.isVerbose)) {
                 return -1; // job failed
             }
-            commitSolr(indexingSpec.getIndexConnectionParams());
+//            commitSolr(indexingSpec.getIndexConnectionParams());
             ForkedMapReduceIndexerTool.goodbye(job, programStartTime);
             return 0;
         } else {
