@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0"?>
 <!--
- Copyright 2013 NGDATA
+ Copyright 2012 NGDATA
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -17,43 +17,35 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>hbase-sep-tools</artifactId>
-  <packaging>jar</packaging>
-  <name>HBase Side-Effect Processor: tools</name>
+  <artifactId>hbase-sep-demo</artifactId>
+  <name>HBase Side-Effect Processor: demo</name>
 
   <parent>
     <groupId>com.ngdata</groupId>
     <artifactId>hbase-sep</artifactId>
-    <version>1.7-SNAPSHOT</version>
+    <version>1.6-SNAPSHOT</version>
     <relativePath>../</relativePath>
   </parent>
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.zookeeper</groupId>
-      <artifactId>zookeeper</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.hadoop</groupId>
-      <artifactId>hadoop-hdfs</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-sep-impl</artifactId>
     </dependency>
+
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-log4j12</artifactId>
+      <scope>runtime</scope>
     </dependency>
+
     <dependency>
-      <groupId>net.sf.jopt-simple</groupId>
-      <artifactId>jopt-simple</artifactId>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.1</version>
+      <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-    </dependency>
-   </dependencies>
+  </dependencies>
 
   <build>
   </build>

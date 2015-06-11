@@ -24,7 +24,7 @@ import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 /**
  * A context that is specific to HBase.
  */
-final class HBaseMorphlineContext extends MorphlineContext {
+public final class HBaseMorphlineContext extends MorphlineContext {
 
     private final Collection<ByteArrayExtractor> extractors = new ArrayList();
 
