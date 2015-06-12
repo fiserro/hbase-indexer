@@ -52,6 +52,7 @@ import com.ngdata.hbaseindexer.Configurable;
 import com.ngdata.hbaseindexer.parse.ByteArrayExtractor;
 import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.ngdata.hbaseindexer.parse.SolrUpdateWriter;
+import com.socialbakers.morphline.hbase.HBaseMorphlineContext;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
@@ -93,7 +94,7 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
 
     public LocalMorphlineResultToSolrMapper() {
     }
-    
+
     @Override
     public void configure(Map<String, String> config) {
         Map<String, String> params = config;
@@ -107,34 +108,6 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
             getBooleanParameter(FaultTolerance.IS_IGNORING_RECOVERABLE_EXCEPTIONS, false, params),
             getStringParameter(FaultTolerance.RECOVERABLE_EXCEPTION_CLASSES,
                                SolrServerException.class.getName(), params));
-        if (params.containsKey("morphlineString")) {
-            File tempDir = com.google.common.io.Files.createTempDir();
-            tempDir.deleteOnExit();
-            File file = new File(tempDir, "moprhline.conf");
-            try {
-                java.io.FileWriter fw = new java.io.FileWriter(file, false);
-                fw.write(params.get("morphlineString"));
-                fw.close();
-            } catch (java.io.IOException e) {
-                e.printStackTrace();
-            }
-            params.put(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM, file.getAbsolutePath());
-        }
-        String morphlineFile = params.get(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM);
-        String morphlineId = params.get(MorphlineResultToSolrMapper.MORPHLINE_ID_PARAM);
-        if (morphlineFile == null || morphlineFile.trim().length() == 0) {
-            throw new MorphlineCompilationException("Missing parameter: "
-                        + MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM, null);
-        }
-        this.morphlineFileAndId = morphlineFile + "@" + morphlineId;
-        
-        // share metric registry across threads for better (aggregate) reporting
-        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(morphlineFileAndId);
-        
-        this.morphlineContext = (HBaseMorphlineContext)new HBaseMorphlineContext.Builder()
-            .setExceptionHandler(faultTolerance)
-            .setMetricRegistry(metricRegistry)
-            .build();
 
         Map morphlineVariables = new HashMap();
         for (Map.Entry<String, String> entry : params.entrySet()) {
@@ -144,9 +117,35 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
             }
         }
         Config override = ConfigFactory.parseMap(morphlineVariables);
-        this.morphline = new Compiler().compile(new File(morphlineFile), morphlineId, morphlineContext, collector,
-                override);
-        
+
+        String morphlineFile;
+        String morphlineId;
+        if (params.containsKey("morphlineString")) {
+            String morphlineString = params.get("morphlineString");
+            morphlineFile = "fromZookeeperConfig"; 
+            morphlineId = "unknown"; 
+            Config morphlineConfig = override.withFallback(ConfigFactory.parseString(morphlineString));
+            this.morphline = new Compiler().compile(morphlineConfig, morphlineContext, collector);
+        } else {
+            morphlineFile = params.get(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM);
+            morphlineId = params.get(MorphlineResultToSolrMapper.MORPHLINE_ID_PARAM);
+            if (morphlineFile == null || morphlineFile.trim().length() == 0) {
+                throw new MorphlineCompilationException("Missing parameter: "
+                        + MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM, null);
+            }
+            this.morphline = new Compiler().compile(new File(morphlineFile), morphlineId, morphlineContext, collector,
+                    override);
+        }
+        this.morphlineFileAndId = morphlineFile + "@" + morphlineId;
+
+        // share metric registry across threads for better (aggregate) reporting
+        MetricRegistry metricRegistry = SharedMetricRegistries.getOrCreate(morphlineFileAndId);
+
+        this.morphlineContext = (HBaseMorphlineContext)new HBaseMorphlineContext.Builder()
+            .setExceptionHandler(faultTolerance)
+            .setMetricRegistry(metricRegistry)
+            .build();
+
         for (Map.Entry<String,String> entry : params.entrySet()) {
             String fieldPrefix = MorphlineResultToSolrMapper.MORPHLINE_FIELD_PARAM + ".";
             if (entry.getKey().startsWith(fieldPrefix)) {
@@ -155,38 +154,15 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
         }
         LOG.debug("Record fields passed by force to this morphline: {}", forcedRecordFields);
 
-        // precompute familyMap; see DefaultResultToSolrMapper ctor
-        Get get = newGet();
-        for (ByteArrayExtractor extractor : morphlineContext.getExtractors()) {
-            byte[] columnFamily = extractor.getColumnFamily();
-            byte[] columnQualifier = extractor.getColumnQualifier();
-            if (columnFamily != null) {
-              if (columnQualifier != null) {
-                  if (get.getFamilyMap().containsKey(columnFamily) && 
-                      get.getFamilyMap().get(columnFamily) == null) {
-                      ; // do nothing to honour pre-existing request to fetch all columns from that family  
-                  } else {
-                      get.addColumn(columnFamily, columnQualifier);
-                  }
-              } else {
-                  get.addFamily(columnFamily);
-              }
-          }
-        }
-        this.familyMap = get.getFamilyMap();
+        this.familyMap = morphlineContext.getFamilyMap();
 
-        this.isSafeMode = getBooleanParameter("isSafeMode", false, params); // intentionally undocumented, not a public
-                                                                            // API
+        this.isSafeMode = getBooleanParameter("isSafeMode", false, params); // intentionally undocumented, not a public API
 
-        this.mappingTimer = morphlineContext.getMetricRegistry().timer(
-            MetricRegistry.name("morphline.app", Metrics.ELAPSED_TIME));
-        this.numRecords = morphlineContext.getMetricRegistry().meter(
-            MetricRegistry.name("morphline.app", Metrics.NUM_RECORDS));
-        this.numFailedRecords = morphlineContext.getMetricRegistry().meter(
-            MetricRegistry.name("morphline.app", "numFailedRecords"));
-        this.numExceptionRecords = morphlineContext.getMetricRegistry().meter(
-            MetricRegistry.name("morphline.app", "numExceptionRecords"));
-        
+        this.mappingTimer = morphlineContext.getMetricRegistry().timer(MetricRegistry.name("morphline.app", Metrics.ELAPSED_TIME));
+        this.numRecords = morphlineContext.getMetricRegistry().meter(MetricRegistry.name("morphline.app", Metrics.NUM_RECORDS));
+        this.numFailedRecords = morphlineContext.getMetricRegistry().meter(MetricRegistry.name("morphline.app", "numFailedRecords"));
+        this.numExceptionRecords = morphlineContext.getMetricRegistry().meter(MetricRegistry.name("morphline.app", "numExceptionRecords"));
+
         Notifications.notifyBeginTransaction(morphline);
     }
 
@@ -195,12 +171,7 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
         if (isSafeMode) {
             return false;
         }
-        for (ByteArrayExtractor extractor : morphlineContext.getExtractors()) {
-            if (!extractor.containsTarget(result)) {
-                return false;
-            }
-        }
-        return true;
+        return morphlineContext.containsRequiredData(result);
     }
 
     @Override
@@ -208,12 +179,7 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
         if (isSafeMode) {
             return true;
         }
-        for (ByteArrayExtractor extractor : morphlineContext.getExtractors()) {
-            if (extractor.isApplicable(kv)) {
-                return true;
-            }
-        }
-        return false;
+        return morphlineContext.isRelevantKV(kv);
     }
 
     @Override

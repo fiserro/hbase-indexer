@@ -29,12 +29,6 @@
     <relativePath>..</relativePath>
   </parent>
 
-  <properties>
-    <version.kite-elasticsearch>0.1.1-SNAPSHOT</version.kite-elasticsearch>
-    <version.elasticsearch>1.4.0</version.elasticsearch>
-    <version.sbks-protos>0.1-protobuf-2.5.0-SNAPSHOT</version.sbks-protos>
-    <version.sbks-custom-commands>0.2.0-SNAPSHOT</version.sbks-custom-commands>
-  </properties>
   
   <dependencies>
     <dependency>
@@ -56,23 +50,10 @@
     <dependency>
       <groupId>com.sematext</groupId>
       <artifactId>kite-morphlines-elasticsearch</artifactId>
-      <version>${version.kite-elasticsearch}</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>${version.elasticsearch}
-      </version>
-    </dependency>
-    <dependency>
-      <groupId>com.socialbakers.protobuf</groupId>
-      <artifactId>sbks-protos</artifactId>
-      <version>${version.sbks-protos}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.socialbakers</groupId>
-      <artifactId>kite-morphlines-sbks-custom-commands</artifactId>
-      <version>${version.sbks-custom-commands}</version>
     </dependency>
   </dependencies>
 
