@@ -16,6 +16,7 @@
 package com.ngdata.hbaseindexer.morphline;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +38,7 @@ import org.kitesdk.morphline.api.Command;
 import org.kitesdk.morphline.api.MorphlineCompilationException;
 import org.kitesdk.morphline.api.Record;
 import org.kitesdk.morphline.base.Compiler;
+import org.kitesdk.morphline.base.Configs;
 import org.kitesdk.morphline.base.FaultTolerance;
 import org.kitesdk.morphline.base.Fields;
 import org.kitesdk.morphline.base.Metrics;
@@ -118,23 +120,30 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
         }
         Config override = ConfigFactory.parseMap(morphlineVariables);
 
+        Compiler compiler = new Compiler();
+        String morphlineId = params.get(MorphlineResultToSolrMapper.MORPHLINE_ID_PARAM);
         String morphlineFile;
-        String morphlineId;
+        Config morphlineConfig;
+
         if (params.containsKey("morphlineString")) {
             String morphlineString = params.get("morphlineString");
             morphlineFile = "fromZookeeperConfig"; 
-            morphlineId = "unknown"; 
-            Config morphlineConfig = override.withFallback(ConfigFactory.parseString(morphlineString));
-            this.morphline = new Compiler().compile(morphlineConfig, morphlineContext, collector);
+            morphlineConfig = override.withFallback(ConfigFactory.parseString(morphlineString));
         } else {
             morphlineFile = params.get(MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM);
-            morphlineId = params.get(MorphlineResultToSolrMapper.MORPHLINE_ID_PARAM);
             if (morphlineFile == null || morphlineFile.trim().length() == 0) {
                 throw new MorphlineCompilationException("Missing parameter: "
                         + MorphlineResultToSolrMapper.MORPHLINE_FILE_PARAM, null);
             }
-            this.morphline = new Compiler().compile(new File(morphlineFile), morphlineId, morphlineContext, collector,
-                    override);
+            try {
+                morphlineConfig = compiler.parse(new File(morphlineFile), override);
+            } catch (IOException e) {
+                throw new MorphlineCompilationException("Cannot parse morphline file: " + morphlineFile, null, e);
+            }
+        }
+        morphlineConfig = compiler.find(morphlineId, morphlineConfig, morphlineFile);
+        if (morphlineId == null) {
+            morphlineId = new Configs().getString(morphlineConfig, "id", "unknownId");
         }
         this.morphlineFileAndId = morphlineFile + "@" + morphlineId;
 
@@ -145,6 +154,8 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
             .setExceptionHandler(faultTolerance)
             .setMetricRegistry(metricRegistry)
             .build();
+
+        this.morphline = compiler.compile(morphlineConfig, morphlineContext, collector);
 
         for (Map.Entry<String,String> entry : params.entrySet()) {
             String fieldPrefix = MorphlineResultToSolrMapper.MORPHLINE_FIELD_PARAM + ".";

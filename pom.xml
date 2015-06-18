@@ -381,19 +381,6 @@
         <version>${version.search.hbase98}</version>
       </dependency>
 
-      <!-- consider fuck out -->
-      <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-test</artifactId>
-        <scope>test</scope>
-        <version>1.2.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.hadoop</groupId>
-        <artifactId>hadoop-core</artifactId>
-        <version>1.2.1</version>
-      </dependency>
-
       <!-- We have to explicitly manage Hadoop dependencies here, since they are optional in HBase -->
       <dependency>
         <groupId>org.apache.hadoop</groupId>
@@ -415,6 +402,16 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-hdfs</artifactId>
+        <version>${version.hadoop.hbase98}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-mapreduce-client-core</artifactId>
+        <version>${version.hadoop.hbase98}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-auth</artifactId>
         <version>${version.hadoop.hbase98}</version>
       </dependency>
       <dependency>

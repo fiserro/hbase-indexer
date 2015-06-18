@@ -16,8 +16,8 @@
 #
 #!/bin/bash -eu
 
-VERSION=1.6
-SBKS_VERSION=25
+VERSION=1.7
+SBKS_VERSION=0
 filename=hbase-indexer_$VERSION~sbks~$SBKS_VERSION
 if [ ! -z $( find -name "$filename"_* ) ]; then
 	echo "$filename already exists, please bump sbks version"
@@ -30,7 +30,7 @@ cleanup() {
 }
 cleanup
 
-mvn clean package -Pdist -DskipTests -Dhbase.api=0.98
+mvn clean package -Pdist -DskipTests
 
 rc=$?; if [ $rc != 0 ]; then exit $rc; fi
 
@@ -42,6 +42,8 @@ cp -p -R hbase-indexer-*/hbase-indexer-*/* opt/hbase-indexer
 # rm -rf opt/hbase/docs
 # sed -i ''  '/hbase.security.log.file=.*/d' opt/hbase/conf/log4j.properties
 # sed -i ''  '/hbase.log.dir=.*/d' opt/hbase/conf/log4j.properties
+
+../../nxfetch.sh -i com.socialbakers.protobuf:sbks-protos:0.1-protobuf-2.5.0-SNAPSHOT > opt/hbase-indexer/lib/sbks-protos-0.1.jar
 
 fpm -s dir -t deb --config-files opt/hbase-indexer/conf/ -n hbase-indexer -v $VERSION~sbks~$SBKS_VERSION -a amd64 -C . opt/hbase-indexer
 
