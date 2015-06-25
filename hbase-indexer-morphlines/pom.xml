@@ -32,8 +32,8 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>com.socialbakers</groupId>
-      <artifactId>kite-morphlines-sbks-custom-commands</artifactId>
+      <groupId>com.socialbakers.morphlines</groupId>
+      <artifactId>morphlines-hbase</artifactId>
     </dependency>
   </dependencies>
 

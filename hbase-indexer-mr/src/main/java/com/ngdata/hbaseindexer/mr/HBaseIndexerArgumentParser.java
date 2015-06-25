@@ -43,8 +43,6 @@ import org.apache.solr.hadoop.ForkedToolRunnerHelpFormatter;
 import org.apache.solr.hadoop.PathArgumentType;
 import org.apache.solr.hadoop.dedup.RetainMostRecentUpdateConflictResolver;
 
-import com.socialbakers.mapreduce.RegionSplitTableInputFormat;
-
 /**
  * See http://argparse4j.sourceforge.net and for details see
  * http://argparse4j.sourceforge.net/usage.html

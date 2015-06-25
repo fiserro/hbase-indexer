@@ -58,8 +58,6 @@ import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
 import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper;
-import com.socialbakers.mapreduce.RegionSplitMultiTableInputFormat;
-import com.socialbakers.mapreduce.RegionSplitTableInputFormat;
 
 /**
  * Top-level tool for running MapReduce-based indexing pipelines over HBase tables.
@@ -155,7 +153,7 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
                 SolrInputDocumentWritable.class,
                 job);
         
-        conf.set(RegionSplitTableInputFormat.REGION_SPLIT, hbaseIndexingOpts.regionSplit);
+        conf.set(SplitUtil.REGION_SPLIT, hbaseIndexingOpts.regionSplit);
         job.setInputFormatClass(RegionSplitMultiTableInputFormat.class);
         
         // explicitely set hbase configuration on the job because the TableMapReduceUtil overwrites it with the hbase defaults

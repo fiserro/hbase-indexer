@@ -6,7 +6,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <properties>
-    <version.solr>4.10.2</version.solr>
+    <version.solr>4.10.4</version.solr>
     <version.guava>11.0.2</version.guava>
     <version.joda-time>1.6</version.joda-time>
     <version.slf4j>1.7.5</version.slf4j>
@@ -18,11 +18,8 @@
     <version.kite>1.0.0</version.kite>
     <version.search>1.2.0</version.search>
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
-    <version.jersey>1.17</version.jersey>
-    <version.elasticsearch>1.4.0</version.elasticsearch>
-    <version.sbks-custom-commands>0.2.0-SNAPSHOT</version.sbks-custom-commands>
-    <version.hbase-sbks-utils>0.0.1-SNAPSHOT</version.hbase-sbks-utils>
-    <version.kite-elasticsearch>0.1.1-SNAPSHOT</version.kite-elasticsearch>
+    <version.jersey>1.19</version.jersey>
+    <version.sbks-morphlines>0.3.0-SNAPSHOT</version.sbks-morphlines>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -326,6 +323,16 @@
       </dependency>
       <dependency>
         <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-client</artifactId>
+        <version>${version.jersey}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
+        <artifactId>jersey-guice</artifactId>
+        <version>${version.jersey}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.sun.jersey</groupId>
         <artifactId>jersey-servlet</artifactId>
         <version>${version.jersey}</version>
       </dependency>
@@ -355,25 +362,9 @@
         <version>1.9</version>
       </dependency>
       <dependency>
-        <groupId>com.socialbakers</groupId>
-        <artifactId>hbase-sbks-utils</artifactId>
-        <version>${version.hbase-sbks-utils}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.socialbakers</groupId>
-        <artifactId>kite-morphlines-sbks-custom-commands</artifactId>
-        <version>${version.sbks-custom-commands}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.sematext</groupId>
-        <artifactId>kite-morphlines-elasticsearch</artifactId>
-        <version>${version.kite-elasticsearch}</version>
-      </dependency>
-      <dependency>
-        <groupId>org.elasticsearch</groupId>
-        <artifactId>elasticsearch</artifactId>
-        <version>${version.elasticsearch}
-        </version>
+        <groupId>com.socialbakers.morphlines</groupId>
+        <artifactId>morphlines-hbase</artifactId>
+        <version>${version.sbks-morphlines}</version>
       </dependency>
       <dependency>
         <groupId>com.cloudera.search</groupId>

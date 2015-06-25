@@ -17,7 +17,7 @@
 #!/bin/bash -eu
 
 VERSION=1.7
-SBKS_VERSION=0
+SBKS_VERSION=4
 filename=hbase-indexer_$VERSION~sbks~$SBKS_VERSION
 if [ ! -z $( find -name "$filename"_* ) ]; then
 	echo "$filename already exists, please bump sbks version"
@@ -43,7 +43,8 @@ cp -p -R hbase-indexer-*/hbase-indexer-*/* opt/hbase-indexer
 # sed -i ''  '/hbase.security.log.file=.*/d' opt/hbase/conf/log4j.properties
 # sed -i ''  '/hbase.log.dir=.*/d' opt/hbase/conf/log4j.properties
 
-../../nxfetch.sh -i com.socialbakers.protobuf:sbks-protos:0.1-protobuf-2.5.0-SNAPSHOT > opt/hbase-indexer/lib/sbks-protos-0.1.jar
+#../../nxfetch.sh -i com.socialbakers.protobuf:sbks-protos:0.1-protobuf-2.5.0-SNAPSHOT > opt/hbase-indexer/lib/sbks-protos-0.1.jar
+#../../nxfetch.sh -i com.sematext:kite-morphlines-elasticsearch:0.1.1-SBKS-FORK > opt/hbase-indexer/lib/kite-morphlines-elasticsearch-0.1.1.jar
 
 fpm -s dir -t deb --config-files opt/hbase-indexer/conf/ -n hbase-indexer -v $VERSION~sbks~$SBKS_VERSION -a amd64 -C . opt/hbase-indexer
 

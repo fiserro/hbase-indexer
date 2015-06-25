@@ -52,10 +52,6 @@
     </dependency>
 
     <dependency>
-      <groupId>com.socialbakers</groupId>
-      <artifactId>hbase-sbks-utils</artifactId>
-    </dependency>
-    <dependency>
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-engine</artifactId>
     </dependency>
@@ -70,6 +66,8 @@
         </exclusion>
       </exclusions>
     </dependency>
+    <!-- 
+     -->
     <dependency>
       <groupId>com.cloudera.search</groupId>
       <artifactId>search-mr</artifactId>
