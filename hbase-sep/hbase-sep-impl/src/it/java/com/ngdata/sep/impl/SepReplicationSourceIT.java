@@ -44,6 +44,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -116,6 +117,7 @@ public class SepReplicationSourceIT {
 		assertNull(loadedFilter);
 	}
 
+	@Ignore
 	@Test
 	public void testRemoveNonReplicableEdits_CustomFilter() {
 		WALEditFilter editFilter = mock(WALEditFilter.class);
