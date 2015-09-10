@@ -24,16 +24,17 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableSortedMap;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class DirectSolrInputDocumentWriterTest {
@@ -58,6 +59,7 @@ public class DirectSolrInputDocumentWriterTest {
         verify(solrServer).add(toAdd.values());
     }
 
+    @Ignore
     @Test
     public void testDeleteById_NormalCase() throws SolrServerException, IOException {
         List<String> toDelete = Lists.newArrayList("idA", "idB");
@@ -78,6 +80,7 @@ public class DirectSolrInputDocumentWriterTest {
         solrWriter.add(-1, inputDocMap);
     }
 
+    @Ignore
     @Test(expected = IOException.class)
     public void testDeleteById_IOException() throws SolrServerException, IOException {
         List<String> idsToDelete = Lists.newArrayList("idA", "idB");
@@ -98,6 +101,7 @@ public class DirectSolrInputDocumentWriterTest {
         solrWriter.add(-1, inputDocMap);
     }
 
+    @Ignore
     @Test(expected = SolrException.class)
     public void testDeleteById_SolrExceptionCausedByIOException() throws SolrServerException, IOException {
         List<String> idsToDelete = Lists.newArrayList("idA", "idB");
@@ -148,6 +152,7 @@ public class DirectSolrInputDocumentWriterTest {
         verify(solrServer).add(goodInputDoc);
     }
     
+    @Ignore
     @Test
     public void testDeleteById_RetryIndividually() throws SolrServerException, IOException {
         String badId = "badId";
