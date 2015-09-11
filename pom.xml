@@ -585,12 +585,18 @@
 
 
   <distributionManagement>
+    <!-- 
     <repository>
       <id>ngdata.oss-releases</id>
       <name>NGDATA OSS Releases</name>
       <url>http://mvnrepo.ngdata.com/content/repositories/oss-releases</url>
     </repository>
-    <!-- <snapshotRepository> <id>ngdata.snapshots</id> <name>NGDATA Snapshots</name> <url>http://mvnrepo.ngdata.com/content/repositories/snapshots</url> </snapshotRepository> -->
+    <snapshotRepository> <id>ngdata.snapshots</id> <name>NGDATA Snapshots</name> <url>http://mvnrepo.ngdata.com/content/repositories/snapshots</url> </snapshotRepository> -->
+    <repository>
+      <id>nexus</id>
+      <name>Releases</name>
+      <url>http://mvn.ccl/nexus/content/repositories/releases</url>
+    </repository>
     <snapshotRepository>
       <id>nexus</id>
       <name>Snapshots</name>
