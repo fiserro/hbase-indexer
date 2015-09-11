@@ -19,7 +19,7 @@
     <version.search>1.2.0</version.search>
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
     <version.jersey>1.19</version.jersey>
-    <version.sbks-morphlines>0.3.1</version.sbks-morphlines>
+    <version.sbks-morphlines>0.3.2</version.sbks-morphlines>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,7 +29,7 @@
   <groupId>com.ngdata</groupId>
   <artifactId>hbase-indexer</artifactId>
   <packaging>pom</packaging>
-  <version>1.7-SNAPSHOT</version>
+  <version>1.7-alpha-1</version>
   <name>HBase Indexer</name>
 
   <url>http://www.ngdata.com/</url>
@@ -47,7 +47,7 @@
     <connection>scm:git:git@github.com:NGDATA/hbase-indexer.git</connection>
     <url>scm:git:git@github.com:NGDATA/hbase-indexer.git</url>
     <developerConnection>scm:git:git@github.com:NGDATA/hbase-indexer.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>hbase-indexer-1.7-alpha-1</tag>
   </scm>
 
   <modules>
