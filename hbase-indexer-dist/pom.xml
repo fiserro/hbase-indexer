@@ -21,11 +21,6 @@
       <groupId>com.ngdata</groupId>
       <artifactId>hbase-indexer-all</artifactId>
     </dependency>
-    <dependency>
-      <groupId>com.ngdata</groupId>
-      <artifactId>hbase-indexer-mr</artifactId>
-      <classifier>job</classifier>
-    </dependency>
 
     <!-- Distribution only dependencies -->
     <dependency>
@@ -76,6 +71,13 @@
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
+      <dependencies>
+        <dependency>
+          <groupId>com.ngdata</groupId>
+          <artifactId>hbase-indexer-mr</artifactId>
+          <classifier>job</classifier>
+        </dependency>
+      </dependencies>
       <build>
         <plugins>
           <plugin>

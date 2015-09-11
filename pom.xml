@@ -44,9 +44,9 @@
   </licenses>
 
   <scm>
-    <connection>scm:git:git@github.com:NGDATA/hbase-indexer.git</connection>
-    <url>scm:git:git@github.com:NGDATA/hbase-indexer.git</url>
-    <developerConnection>scm:git:git@github.com:NGDATA/hbase-indexer.git</developerConnection>
+    <connection>scm:git:git@github.com:fiserro/hbase-indexer.git</connection>
+    <url>scm:git:git@github.com:fiserro/hbase-indexer.git</url>
+    <developerConnection>scm:git:git@github.com:fiserro/hbase-indexer.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
 
