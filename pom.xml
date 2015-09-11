@@ -29,7 +29,7 @@
   <groupId>com.ngdata</groupId>
   <artifactId>hbase-indexer</artifactId>
   <packaging>pom</packaging>
-  <version>1.7-alpha-1</version>
+  <version>1.7-alpha-2-SNAPSHOT</version>
   <name>HBase Indexer</name>
 
   <url>http://www.ngdata.com/</url>
@@ -47,7 +47,7 @@
     <connection>scm:git:git@github.com:fiserro/hbase-indexer.git</connection>
     <url>scm:git:git@github.com:fiserro/hbase-indexer.git</url>
     <developerConnection>scm:git:git@github.com:fiserro/hbase-indexer.git</developerConnection>
-    <tag>hbase-indexer-1.7-alpha-1</tag>
+    <tag>HEAD</tag>
   </scm>
 
   <modules>
