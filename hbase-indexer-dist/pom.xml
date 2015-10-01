@@ -56,12 +56,12 @@
     <dependency>
       <groupId>com.sematext</groupId>
       <artifactId>kite-morphlines-elasticsearch</artifactId>
-      <version>0.1.1-SBKS-FORK</version>
+      <version>0.1.2-SBKS-FORK</version>
     </dependency>
     <dependency>
       <groupId>org.elasticsearch</groupId>
       <artifactId>elasticsearch</artifactId>
-      <version>1.6.0</version>
+      <version>1.7.1</version>
     </dependency>
   </dependencies>
 
