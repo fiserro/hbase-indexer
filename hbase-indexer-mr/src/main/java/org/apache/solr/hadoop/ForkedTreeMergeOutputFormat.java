@@ -23,6 +23,7 @@ import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
@@ -95,9 +96,10 @@ public class ForkedTreeMergeOutputFormat extends FileOutputFormat<Text, NullWrit
       heartBeater.needHeartBeat();
       try {
         Directory mergedIndex = new HdfsDirectory(workDir, context.getConfiguration());
-        
-        IndexWriterConfig writerConfig = new IndexWriterConfig(Version.LUCENE_CURRENT, null)
-            .setOpenMode(OpenMode.CREATE).setUseCompoundFile(false)
+        if (true) throw new NotImplementedException();
+        IndexWriterConfig writerConfig = null; 
+//        		new IndexWriterConfig(Version.LUCENE_CURRENT, null)
+//            .setOpenMode(OpenMode.CREATE).setUseCompoundFile(false)
             //.setMergePolicy(mergePolicy) // TODO: grab tuned MergePolicy from solrconfig.xml?
             //.setMergeScheduler(...) // TODO: grab tuned MergeScheduler from solrconfig.xml?
             ;

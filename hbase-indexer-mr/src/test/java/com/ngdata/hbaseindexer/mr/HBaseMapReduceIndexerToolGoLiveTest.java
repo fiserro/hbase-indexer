@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.ngdata.hbaseindexer.conf.DefaultIndexerComponentFactory;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -36,6 +35,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrQuery.ORDER;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocument;
@@ -48,6 +48,7 @@ import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.io.Resources;
+import com.ngdata.hbaseindexer.conf.DefaultIndexerComponentFactory;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinitionBuilder;
 import com.ngdata.hbaseindexer.model.impl.IndexerModelImpl;
@@ -191,15 +192,17 @@ public class HBaseMapReduceIndexerToolGoLiveTest {
      * 
      * @param queryString Solr query string
      * @return list of results from Solr
+     * @throws IOException 
      */
-    private SolrDocumentList executeSolrQuery(String queryString) throws SolrServerException {
+    private SolrDocumentList executeSolrQuery(String queryString) throws SolrServerException, IOException {
         return executeSolrQuery(COLLECTION1, queryString);
     }
     
     /**
      * Execute a Solr query on a specific collection.
+     * @throws IOException 
      */
-    private SolrDocumentList executeSolrQuery(CloudSolrServer collection, String queryString) throws SolrServerException {
+    private SolrDocumentList executeSolrQuery(CloudSolrClient collection, String queryString) throws SolrServerException, IOException {
         SolrQuery query = new SolrQuery(queryString).setRows(RECORD_COUNT * 2).addSort("id", ORDER.asc);
         QueryResponse response = collection.query(query);
         return response.getResults();

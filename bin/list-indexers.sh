@@ -23,4 +23,4 @@
 # * limitations under the License.
 # */
 
-./bin/hbase-indexer list-indexers -z c-sencha-s01
+./bin/hbase-indexer list-indexers $@

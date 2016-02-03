@@ -24,43 +24,16 @@ import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_UP
 import static com.ngdata.hbaseindexer.util.solr.SolrConnectionParamUtil.getSolrMaxConnectionsPerRoute;
 import static com.ngdata.hbaseindexer.util.solr.SolrConnectionParamUtil.getSolrMaxConnectionsTotal;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.base.Objects;
-import com.google.common.collect.Maps;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
-import com.ngdata.hbaseindexer.conf.IndexerConf;
-import com.ngdata.hbaseindexer.indexer.DirectSolrClassicInputDocumentWriter;
-import com.ngdata.hbaseindexer.indexer.DirectSolrInputDocumentWriter;
-import com.ngdata.hbaseindexer.indexer.Indexer;
-import com.ngdata.hbaseindexer.indexer.IndexingEventListener;
-import com.ngdata.hbaseindexer.indexer.Sharder;
-import com.ngdata.hbaseindexer.indexer.SolrInputDocumentWriter;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
-import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
-import com.ngdata.hbaseindexer.model.api.IndexerModel;
-import com.ngdata.hbaseindexer.model.api.IndexerModelEvent;
-import com.ngdata.hbaseindexer.model.api.IndexerModelListener;
-import com.ngdata.hbaseindexer.model.api.IndexerNotFoundException;
-import com.ngdata.hbaseindexer.model.api.IndexerProcessRegistry;
-import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
-import com.ngdata.hbaseindexer.util.solr.SolrConnectionParamUtil;
-import com.ngdata.sep.impl.SepConsumer;
-import com.ngdata.sep.util.io.Closer;
-import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -68,8 +41,23 @@ import org.apache.hadoop.hbase.client.HTablePool;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.zookeeper.KeeperException;
+
+import com.google.common.base.Objects;
+import com.google.common.collect.Maps;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.indexer.*;
+import com.ngdata.hbaseindexer.model.api.*;
+import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
+import com.ngdata.hbaseindexer.util.solr.SolrConnectionParamUtil;
+import com.ngdata.sep.impl.SepConsumer;
+import com.ngdata.sep.util.io.Closer;
+import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
 
 /**
  * Responsible for starting, stopping and restarting {@link Indexer}s for the indexers defined in the
@@ -200,23 +188,23 @@ public class IndexerSupervisor {
             ResultToSolrMapper mapper = factory.createMapper(indexerDef.getName());
 
             Sharder sharder = null;
-            SolrInputDocumentWriter solrWriter;
+            SolrInputDocumentWriter solrWriter = new BlindDocumentWriter();
             PoolingClientConnectionManager connectionManager = null;
 
             if (indexerDef.getConnectionType() == null || indexerDef.getConnectionType().equals("solr")) {
                 Map<String, String> connectionParams = indexerDef.getConnectionParams();
                 String solrMode = SolrConnectionParamUtil.getSolrMode(connectionParams);
                 if (solrMode.equals("cloud")) {
-                    solrWriter = new DirectSolrInputDocumentWriter(indexerDef.getName(), createCloudSolrServer(connectionParams));
+//                    solrWriter = new DirectSolrInputDocumentWriter(indexerDef.getName(), createCloudSolrServer(connectionParams));
                 } else if (solrMode.equals("classic")) {
-                    connectionManager = new PoolingClientConnectionManager();
-                    connectionManager.setDefaultMaxPerRoute(getSolrMaxConnectionsPerRoute(connectionParams));
-                    connectionManager.setMaxTotal(getSolrMaxConnectionsTotal(connectionParams));
+//                    connectionManager = new PoolingClientConnectionManager();
+//                    connectionManager.setDefaultMaxPerRoute(getSolrMaxConnectionsPerRoute(connectionParams));
+//                    connectionManager.setMaxTotal(getSolrMaxConnectionsTotal(connectionParams));
 
-                    httpClient = new DefaultHttpClient(connectionManager);
-                    List<SolrServer> solrServers = createHttpSolrServers(connectionParams, httpClient);
-                    solrWriter = new DirectSolrClassicInputDocumentWriter(indexerDef.getName(), solrServers);
-                    sharder = createSharder(connectionParams, solrServers.size());
+//                    httpClient = new DefaultHttpClient(connectionManager);
+//                    List<SolrClient> solrServers = createHttpSolrServers(connectionParams, httpClient);
+//                    solrWriter = new DirectSolrClassicInputDocumentWriter(indexerDef.getName(), solrServers);
+//                    sharder = createSharder(connectionParams, solrServers.size());
                 } else {
                     throw new RuntimeException("Only 'cloud' and 'classic' are valid values for solr.mode, but got " + solrMode);
                 }

@@ -15,19 +15,18 @@
  */
 package com.ngdata.hbaseindexer.util.solr;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Files;
 import com.ngdata.hbaseindexer.util.MavenUtil;
@@ -38,6 +37,7 @@ import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.cloud.ZkController;
 import org.apache.solr.common.cloud.OnReconnect;
 import org.apache.solr.common.cloud.SolrZkClient;
+import org.apache.solr.common.cloud.ZkConfigManager;
 import org.apache.zookeeper.KeeperException;
 import org.mortbay.jetty.Server;
 import org.mortbay.jetty.webapp.WebAppContext;
@@ -180,8 +180,8 @@ public class SolrTestingUtility {
             throws InterruptedException, IOException, KeeperException {
         // Write schema & solrconf to temporary dir, upload dir, delete tmp dir
         File tmpConfDir = Files.createTempDir();
-        Files.copy(ByteStreams.newInputStreamSupplier(schema), new File(tmpConfDir, "schema.xml"));
-        Files.copy(ByteStreams.newInputStreamSupplier(solrconf), new File(tmpConfDir, "solrconfig.xml"));
+        ByteSource.wrap(schema).copyTo(Files.asByteSink(new File(tmpConfDir, "schema.xml")));
+        ByteSource.wrap(solrconf).copyTo(Files.asByteSink(new File(tmpConfDir, "solrconfig.xml")));
         uploadConfig(confName, tmpConfDir);
         FileUtils.deleteDirectory(tmpConfDir);
     }
@@ -196,7 +196,12 @@ public class SolrTestingUtility {
                     @Override
                     public void command() {}
                 });
-        ZkController.uploadConfigDir(zkClient, confDir, confName);
+//        ZkController.uploadConfigDir(zkClient, confDir, confName);
+//        ZkController.bootstrapConf();
+        ZkConfigManager configManager = new ZkConfigManager(zkClient);
+        Path udir = confDir.toPath();/*.resolve("conf");*/
+//        log.info("Uploading directory " + udir + " with name " + confName + " for SolrCore " + coreName);
+        configManager.uploadConfigDir(udir, confName);
         zkClient.close();
     }
 

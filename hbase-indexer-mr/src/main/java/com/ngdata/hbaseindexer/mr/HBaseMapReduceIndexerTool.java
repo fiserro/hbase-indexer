@@ -43,8 +43,10 @@ import org.apache.hadoop.util.ToolRunner;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.hadoop.ForkedMapReduceIndexerTool;
 import org.apache.solr.hadoop.SolrInputDocumentWritable;
@@ -170,7 +172,7 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
                         hbaseIndexingOpts.maxSegments});
 
         if (hbaseIndexingOpts.isDirectWrite()) {
-            CloudSolrServer solrServer = new CloudSolrServer(hbaseIndexingOpts.zkHost);
+            CloudSolrClient solrServer = new CloudSolrClient(hbaseIndexingOpts.zkHost);
             solrServer.setDefaultCollection(hbaseIndexingOpts.collection);
 
             if (hbaseIndexingOpts.clearIndex) {
@@ -183,10 +185,12 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
             job.submit();
             callback.jobStarted(job.getJobID().toString(), job.getTrackingURL());
             if (!ForkedMapReduceIndexerTool.waitForCompletion(job, hbaseIndexingOpts.isVerbose)) {
+            	solrServer.close();
                 return -1; // job failed
             }
 //            commitSolr(indexingSpec.getIndexConnectionParams());
             ForkedMapReduceIndexerTool.goodbye(job, programStartTime);
+            solrServer.close();
             return 0;
         } else {
             FileSystem fileSystem = FileSystem.get(getConf());
@@ -224,37 +228,37 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
     }
 
     private void clearSolr(Map<String, String> indexConnectionParams) throws SolrServerException, IOException {
-        Set<SolrServer> servers = createSolrServers(indexConnectionParams);
-        for (SolrServer server : servers) {
+        Set<SolrClient> servers = createSolrServers(indexConnectionParams);
+        for (SolrClient server : servers) {
             server.deleteByQuery("*:*");
             server.commit(false, false);
-            server.shutdown();
+            server.close();
         }
     }
 
     private void commitSolr(Map<String, String> indexConnectionParams) throws SolrServerException, IOException {
-        Set<SolrServer> servers = createSolrServers(indexConnectionParams);
-        for (SolrServer server : servers) {
+        Set<SolrClient> servers = createSolrServers(indexConnectionParams);
+        for (SolrClient server : servers) {
             server.commit(false, false);
-            server.shutdown();
+            server.close();
         }
     }
 
-    private Set<SolrServer> createSolrServers(Map<String, String> indexConnectionParams) throws MalformedURLException {
+    private Set<SolrClient> createSolrServers(Map<String, String> indexConnectionParams) throws MalformedURLException {
         String solrMode = getSolrMode(indexConnectionParams);
         if (solrMode.equals("cloud")) {
             String indexZkHost = indexConnectionParams.get(SolrConnectionParams.ZOOKEEPER);
             String collectionName = indexConnectionParams.get(SolrConnectionParams.COLLECTION);
-            CloudSolrServer solrServer = new CloudSolrServer(indexZkHost);
+            CloudSolrClient solrServer = new CloudSolrClient(indexZkHost);
             solrServer.setDefaultCollection(collectionName);
-            return Collections.singleton((SolrServer) solrServer);
+            return Collections.singleton((SolrClient) solrServer);
         } else if (solrMode.equals("classic")) {
             PoolingClientConnectionManager connectionManager = new PoolingClientConnectionManager();
             connectionManager.setDefaultMaxPerRoute(getSolrMaxConnectionsPerRoute(indexConnectionParams));
             connectionManager.setMaxTotal(getSolrMaxConnectionsTotal(indexConnectionParams));
 
             HttpClient httpClient = new DefaultHttpClient(connectionManager);
-            return new HashSet<SolrServer>(createHttpSolrServers(indexConnectionParams, httpClient));
+            return new HashSet<SolrClient>(createHttpSolrServers(indexConnectionParams, httpClient));
         } else {
             throw new RuntimeException("Only 'cloud' and 'classic' are valid values for solr.mode, but got " + solrMode);
         }

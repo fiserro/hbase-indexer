@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -255,7 +253,7 @@ public class IndexingEventListenerTest {
         Set<String> documentIds = Sets.newHashSet(Collections2.transform(docs.values(), new Function<SolrInputDocument,String>(){
 
             @Override
-            public String apply(@Nullable SolrInputDocument input) {
+            public String apply(SolrInputDocument input) {
                 return (String)input.getFieldValue("id");
             }}));
         assertEquals(Sets.newHashSet("row1-messages-msg1","row1-messages-msg2"), documentIds);

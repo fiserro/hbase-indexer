@@ -19,7 +19,6 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Collection;
 
-import javax.annotation.Nullable;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
@@ -32,7 +31,7 @@ public class ExtractTestUtil {
         Function<byte[], String> byteToStringFn = new Function<byte[], String>() {
 
             @Override
-            public String apply(@Nullable byte[] input) {
+            public String apply(byte[] input) {
                 return Bytes.toStringBinary(input);
             }
         };

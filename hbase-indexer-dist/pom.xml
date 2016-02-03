@@ -58,11 +58,6 @@
       <artifactId>morphlines-protobuf</artifactId>
       <version>${version.sbks-morphlines}</version>
     </dependency>
-    <dependency>
-      <groupId>org.elasticsearch</groupId>
-      <artifactId>elasticsearch</artifactId>
-      <version>1.7.1</version>
-    </dependency>
   </dependencies>
 
   <profiles>

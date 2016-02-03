@@ -39,6 +39,7 @@ import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrQuery;
 import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.CloudSolrClient;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.client.solrj.response.QueryResponse;
 import org.apache.solr.common.SolrDocumentList;
@@ -207,14 +208,14 @@ public class HBaseMapReduceIndexerToolDirectWriteTest {
      * @param queryString Solr query string
      * @return list of results from Solr
      */
-    private SolrDocumentList executeSolrQuery(String queryString) throws SolrServerException {
+    private SolrDocumentList executeSolrQuery(String queryString) throws SolrServerException, IOException {
         return executeSolrQuery(COLLECTION1, queryString);
     }
     
     /**
      * Execute a Solr query on a specific collection.
      */
-    private SolrDocumentList executeSolrQuery(CloudSolrServer collection, String queryString) throws SolrServerException {
+    private SolrDocumentList executeSolrQuery(CloudSolrClient collection, String queryString) throws SolrServerException, IOException {
         QueryResponse response = collection.query(new SolrQuery(queryString));
         return response.getResults();
     }

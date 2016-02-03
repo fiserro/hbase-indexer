@@ -25,8 +25,8 @@
 
 if [ $# -eq 0 ]
   then
-    echo "Pass 1 arguments: <inexer_name>"
+    echo "Pass at least 1 arguments: <inexer_name>"
     exit 1
 fi
 
-./bin/hbase-indexer delete-indexer -n $1 -z c-sencha-s01,c-sencha-s02,c-sencha-s03
+./bin/hbase-indexer delete-indexer $@

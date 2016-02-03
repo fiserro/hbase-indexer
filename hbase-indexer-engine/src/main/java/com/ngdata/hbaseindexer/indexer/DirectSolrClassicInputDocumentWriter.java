@@ -23,15 +23,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Meter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
+
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Meter;
 
 /**
  * Writes updates (new documents and deletes) directly to a set of SolrServer (one for each shard).
@@ -53,7 +55,7 @@ import org.apache.solr.common.SolrInputDocument;
 public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWriter {
 
     private Log log = LogFactory.getLog(getClass());
-    private List<SolrServer> solrServers;
+    private List<SolrClient> solrClients;
     private Meter indexAddMeter;
     private Meter indexDeleteMeter;
     private Meter solrAddErrorMeter;
@@ -61,8 +63,8 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     private Meter documentAddErrorMeter;
     private Meter documentDeleteErrorMeter;
 
-    public DirectSolrClassicInputDocumentWriter(String indexName, List<SolrServer> solrServers) {
-        this.solrServers = solrServers;
+    public DirectSolrClassicInputDocumentWriter(String indexName, List<SolrClient> solrServers) {
+        this.solrClients = solrServers;
 
         indexAddMeter = Metrics.newMeter(metricName(getClass(), "Index adds", indexName), "Documents added to Solr index",
                 TimeUnit.SECONDS);
@@ -101,7 +103,7 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     public void add(int shard, Map<String, SolrInputDocument> inputDocumentMap) throws SolrServerException, IOException {
         Collection<SolrInputDocument> inputDocuments = inputDocumentMap.values();
         try {
-            solrServers.get(shard).add(inputDocuments);
+            solrClients.get(shard).add(inputDocuments);
             indexAddMeter.mark(inputDocuments.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
@@ -120,7 +122,7 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
             IOException {
         for (SolrInputDocument inputDocument : inputDocuments) {
             try {
-                solrServers.get(shard).add(inputDocument);
+                solrClients.get(shard).add(inputDocument);
                 indexAddMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
@@ -139,7 +141,7 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     @Override
     public void deleteById(int shard, List<String> idsToDelete) throws SolrServerException, IOException {
         try {
-            solrServers.get(shard).deleteById(idsToDelete);
+            solrClients.get(shard).deleteById(idsToDelete);
             indexDeleteMeter.mark(idsToDelete.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
@@ -157,7 +159,7 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     private void retryDeletesIndividually(int shard, List<String> idsToDelete) throws SolrServerException, IOException {
         for (String idToDelete : idsToDelete) {
             try {
-                solrServers.get(shard).deleteById(idToDelete);
+                solrClients.get(shard).deleteById(idToDelete);
                 indexDeleteMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
@@ -175,7 +177,7 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     @Override
     public void deleteByQuery(String deleteQuery) throws SolrServerException, IOException {
         try {
-            for (SolrServer server : solrServers) {
+            for (SolrClient server : solrClients) {
                 server.deleteByQuery(deleteQuery);
             }
         } catch (SolrException e) {
@@ -192,13 +194,13 @@ public class DirectSolrClassicInputDocumentWriter implements SolrInputDocumentWr
     }
 
     @Override
-    public void close() {
-        for (SolrServer server : solrServers) {
-            server.shutdown();
+    public void close() throws IOException {
+        for (SolrClient client : solrClients) {
+            client.close();
         }
     }
 
     public int getNumServers() {
-        return solrServers.size();
+        return solrClients.size();
     }
 }

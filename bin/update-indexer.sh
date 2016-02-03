@@ -23,7 +23,7 @@
 # * limitations under the License.
 # */
 
-if [ $# -eq 0 ]
+if [ $# -lt 3 ]
   then
     echo "Pass 3 arguments: <table_name> <inexer_name> <morphline_conf>"
     exit 1
@@ -32,5 +32,5 @@ fi
 TEMP_FILE=/tmp/indexer_conf.xml
 
 ./bin/zkmorph.sh $1 $3 $TEMP_FILE
-./bin/hbase-indexer update-indexer -n $2 -c $TEMP_FILE -z c-sencha-s01,c-sencha-s02,c-sencha-s03
+./bin/hbase-indexer update-indexer -n $2 -c $TEMP_FILE ${@:4}
 

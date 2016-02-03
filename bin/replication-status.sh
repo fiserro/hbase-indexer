@@ -23,4 +23,4 @@
 # * limitations under the License.
 # */
 
-./bin/hbase-indexer replication-status
+./bin/hbase-indexer replication-status $@

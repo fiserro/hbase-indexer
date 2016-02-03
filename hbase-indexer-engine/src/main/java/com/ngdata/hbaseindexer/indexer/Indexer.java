@@ -15,8 +15,7 @@
  */
 package com.ngdata.hbaseindexer.indexer;
 
-import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.metricName;
-import static com.ngdata.sep.impl.HBaseShims.newResult;
+import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.*;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -25,29 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.TimeUnit;
-
-import javax.annotation.Nullable;
-
-import com.google.common.base.Charsets;
-import com.google.common.base.Function;
-import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.google.common.collect.Table;
-import com.ngdata.hbaseindexer.ConfigureUtil;
-import com.ngdata.hbaseindexer.conf.IndexerConf;
-import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
-import com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil;
-import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
-import com.ngdata.hbaseindexer.parse.SolrUpdateWriter;
-import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
-import com.ngdata.hbaseindexer.uniquekey.UniqueTableKeyFormatter;
-import com.ngdata.sep.util.io.Closer;
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Timer;
-import com.yammer.metrics.core.TimerContext;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -59,6 +35,25 @@ import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrInputDocument;
+
+import com.google.common.base.Charsets;
+import com.google.common.base.Function;
+import com.google.common.collect.*;
+import com.ngdata.hbaseindexer.ConfigureUtil;
+import com.ngdata.hbaseindexer.conf.IndexerConf;
+import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
+import com.ngdata.hbaseindexer.indexer.Indexer.ColumnBasedIndexer;
+import com.ngdata.hbaseindexer.indexer.Indexer.RowBasedIndexer;
+import com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil;
+import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
+import com.ngdata.hbaseindexer.parse.SolrUpdateWriter;
+import com.ngdata.hbaseindexer.uniquekey.UniqueKeyFormatter;
+import com.ngdata.hbaseindexer.uniquekey.UniqueTableKeyFormatter;
+import com.ngdata.sep.impl.HBaseShims;
+import com.ngdata.sep.util.io.Closer;
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Timer;
+import com.yammer.metrics.core.TimerContext;
 
 /**
  * The indexing algorithm. It receives an event from the SEP, handles it based on the configuration, and eventually
@@ -203,7 +198,7 @@ public abstract class Indexer {
     private Map<Integer, Collection<String>> shardByValue(List<String> idsToDelete) {
         Multimap<Integer, String> map = Multimaps.index(idsToDelete, new Function<String, Integer>() {
             @Override
-            public Integer apply(@Nullable String id) {
+            public Integer apply(String id) {
                 try {
                     return sharder.getShard(id);
                 } catch (SharderException e) {
@@ -340,7 +335,7 @@ public abstract class Indexer {
                 if (keyValue.isDelete()) {
                     handleDelete(documentId, keyValue, updateCollector, uniqueKeyFormatter);
                 } else {
-                    Result result = newResult(Collections.singletonList(keyValue));
+                    Result result = HBaseShims.newResult(Collections.singletonList(keyValue));
                     SolrUpdateWriter updateWriter = new RowAndFamilyAddingSolrUpdateWriter(
                             conf.getRowField(),
                             conf.getColumnFamilyField(),

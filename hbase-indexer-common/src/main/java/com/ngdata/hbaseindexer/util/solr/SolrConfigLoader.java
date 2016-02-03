@@ -22,6 +22,7 @@ import java.util.List;
 
 import javax.xml.parsers.ParserConfigurationException;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.solr.cloud.ZkController;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
@@ -58,7 +59,9 @@ public class SolrConfigLoader extends SolrResourceLoader {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonParser jsonParser = objectMapper.getJsonFactory().createJsonParser(data);
             JsonNode collectionNode = objectMapper.readTree(jsonParser);
-            return ZkController.CONFIGS_ZKNODE + "/" + collectionNode.get(ZkController.CONFIGNAME_PROP).getValueAsText();
+            if (true)throw new NotImplementedException();
+            return null;
+//            return ZkController.CONFIGS_ZKNODE + "/" + collectionNode.get(ZkController.CONFIGNAME_PROP).getValueAsText();
         } catch (Exception e) {
             // TODO Better exception handling here
             throw new RuntimeException(e);

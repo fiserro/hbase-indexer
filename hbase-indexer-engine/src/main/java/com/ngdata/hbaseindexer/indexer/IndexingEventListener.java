@@ -17,12 +17,10 @@ package com.ngdata.hbaseindexer.indexer;
 
 import static com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil.metricName;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-import javax.annotation.Nullable;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Function;
@@ -69,7 +67,7 @@ public class IndexingEventListener implements EventListener {
             tableEqualityPredicate = new Predicate<SepEvent>() {
 
                 @Override
-                public boolean apply(@Nullable SepEvent event) {
+                public boolean apply(SepEvent event) {
                     return tableNamePattern.matcher(new String(event.getTable(), Charsets.UTF_8)).matches();
                 }
             };
@@ -77,7 +75,7 @@ public class IndexingEventListener implements EventListener {
             final byte[] tableNameBytes = Bytes.toBytes(targetTableNameExpression);
             tableEqualityPredicate = new Predicate<SepEvent>() {
                 @Override
-                public boolean apply(@Nullable SepEvent event) {
+                public boolean apply(SepEvent event) {
                     return Bytes.equals(tableNameBytes, event.getTable());
                 }
             };
@@ -111,7 +109,7 @@ public class IndexingEventListener implements EventListener {
         static final SepEventToRowDataFunction INSTANCE = new SepEventToRowDataFunction();
 
         @Override
-        public RowData apply(@Nullable SepEvent input) {
+        public RowData apply(SepEvent input) {
             return new SepEventRowData(input);
         }
         

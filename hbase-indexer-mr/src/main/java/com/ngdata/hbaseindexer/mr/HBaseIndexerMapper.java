@@ -31,18 +31,16 @@ import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import com.google.common.base.Charsets;
-import com.google.common.collect.Maps;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
-import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.io.Text;
+import org.apache.http.client.HttpClient;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.conn.PoolingClientConnectionManager;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.CloudSolrServer;
 import org.apache.solr.hadoop.SolrInputDocumentWritable;
@@ -54,37 +52,23 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.Counting;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.SharedMetricRegistries;
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
 import com.ngdata.hbaseindexer.conf.IndexerConf;
 import com.ngdata.hbaseindexer.conf.IndexerConf.RowReadMode;
 import com.ngdata.hbaseindexer.conf.IndexerConfBuilder;
-import com.ngdata.hbaseindexer.indexer.DirectSolrClassicInputDocumentWriter;
-import com.ngdata.hbaseindexer.indexer.DirectSolrInputDocumentWriter;
-import com.ngdata.hbaseindexer.indexer.Indexer;
-import com.ngdata.hbaseindexer.indexer.ResultToSolrMapperFactory;
-import com.ngdata.hbaseindexer.indexer.ResultWrappingRowData;
-import com.ngdata.hbaseindexer.indexer.RowData;
-import com.ngdata.hbaseindexer.indexer.Sharder;
-import com.ngdata.hbaseindexer.indexer.SharderException;
-import com.ngdata.hbaseindexer.indexer.SolrInputDocumentWriter;
+import com.ngdata.hbaseindexer.indexer.*;
 import com.ngdata.hbaseindexer.metrics.IndexerMetricsUtil;
 import com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper;
 import com.ngdata.hbaseindexer.parse.ResultToSolrMapper;
 import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Counter;
-import com.yammer.metrics.core.Meter;
-import com.yammer.metrics.core.Metric;
-import com.yammer.metrics.core.MetricName;
-import com.yammer.metrics.core.Timer;
-
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.PoolingClientConnectionManager;
-import org.apache.solr.client.solrj.SolrServer;
+import com.yammer.metrics.core.*;
 
 /**
  * Mapper for converting HBase Result objects into index documents.
@@ -283,7 +267,7 @@ public class HBaseIndexerMapper extends TableMapper<Text, SolrInputDocumentWrita
         connectionManager.setMaxTotal(getSolrMaxConnectionsTotal(indexConnectionParams));
 
         HttpClient httpClient = new DefaultHttpClient(connectionManager);
-        List<SolrServer> solrServers = createHttpSolrServers(indexConnectionParams, httpClient);
+        List<SolrClient> solrServers = createHttpSolrServers(indexConnectionParams, httpClient);
 
         return new DirectSolrClassicInputDocumentWriter(
                 context.getConfiguration().get(INDEX_NAME_CONF_KEY), solrServers);

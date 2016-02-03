@@ -23,15 +23,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import com.yammer.metrics.Metrics;
-import com.yammer.metrics.core.Meter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.solr.client.solrj.SolrClient;
 import org.apache.solr.client.solrj.SolrServer;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.common.SolrException;
 import org.apache.solr.common.SolrException.ErrorCode;
 import org.apache.solr.common.SolrInputDocument;
+
+import com.yammer.metrics.Metrics;
+import com.yammer.metrics.core.Meter;
 
 /**
  * Writes updates (new documents and deletes) directly to a SolrServer.
@@ -53,7 +55,7 @@ import org.apache.solr.common.SolrInputDocument;
 public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
 
     private Log log = LogFactory.getLog(getClass());
-    private SolrServer solrServer;
+    private SolrClient solrClient;
     private Meter indexAddMeter;
     private Meter indexDeleteMeter;
     private Meter solrAddErrorMeter;
@@ -61,8 +63,8 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
     private Meter documentAddErrorMeter;
     private Meter documentDeleteErrorMeter;
 
-    public DirectSolrInputDocumentWriter(String indexName, SolrServer solrServer) {
-        this.solrServer = solrServer;
+    public DirectSolrInputDocumentWriter(String indexName, SolrClient solrClient) {
+        this.solrClient = solrClient;
         
         indexAddMeter = Metrics.newMeter(metricName(getClass(), "Index adds", indexName), "Documents added to Solr index",
                 TimeUnit.SECONDS);
@@ -101,7 +103,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
     public void add(int shard, Map<String, SolrInputDocument> inputDocumentMap) throws SolrServerException, IOException {
         Collection<SolrInputDocument> inputDocuments = inputDocumentMap.values();
         try {
-            solrServer.add(inputDocuments);
+            solrClient.add(inputDocuments);
             indexAddMeter.mark(inputDocuments.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
@@ -120,7 +122,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
             IOException {
         for (SolrInputDocument inputDocument : inputDocuments) {
             try {
-                solrServer.add(inputDocument);
+                solrClient.add(inputDocument);
                 indexAddMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
@@ -146,7 +148,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
         }
 
         try {
-            solrServer.deleteById(idsToDelete);
+            solrClient.deleteById(idsToDelete);
             indexDeleteMeter.mark(idsToDelete.size());
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
@@ -164,7 +166,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
     private void retryDeletesIndividually(List<String> idsToDelete) throws SolrServerException, IOException {
         for (String idToDelete : idsToDelete) {
             try {
-                solrServer.deleteById(idToDelete);
+                solrClient.deleteById(idToDelete);
                 indexDeleteMeter.mark();
             } catch (SolrException e) {
                 logOrThrowSolrException(e);
@@ -182,7 +184,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
     @Override
     public void deleteByQuery(String deleteQuery) throws SolrServerException, IOException {
         try {
-            solrServer.deleteByQuery(deleteQuery);
+            solrClient.deleteByQuery(deleteQuery);
         } catch (SolrException e) {
             if (isDocumentIssue(e)) {
                 documentDeleteErrorMeter.mark(1);
@@ -198,7 +200,7 @@ public class DirectSolrInputDocumentWriter implements SolrInputDocumentWriter {
     
     @Override
     public void close() {
-        solrServer.shutdown();
+        solrClient.shutdown();
     }
 
 }
