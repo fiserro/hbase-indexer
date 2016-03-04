@@ -17,7 +17,7 @@
 #!/bin/bash -eu
 
 VERSION=1.7
-SBKS_VERSION=16
+SBKS_VERSION=16.2
 filename=hbase-indexer_$VERSION~sbks~$SBKS_VERSION
 if [ ! -z $( find -name "$filename"_* ) ]; then
 	echo "$filename already exists, please bump sbks version"

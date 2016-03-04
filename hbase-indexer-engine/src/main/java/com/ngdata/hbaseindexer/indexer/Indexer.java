@@ -291,6 +291,10 @@ public abstract class Indexer {
          * Calculate a map of Solr document ids to relevant RowData, only taking the most recent event for each document id..
          */
         private Map<String, RowData> calculateUniqueEvents(List<RowData> rowDataList) {
+            log.debug("XXX calculateUniqueEvents - recieved row data:");
+            for (RowData rowData : rowDataList) {
+                log.debug("XXX: " + Bytes.toStringBinary(rowData.getRow()));
+            }
             Map<String, RowData> idToEvent = Maps.newHashMap();
             for (RowData rowData : rowDataList) {
                 // Check if the event contains changes to relevant key values
@@ -313,6 +317,12 @@ public abstract class Indexer {
                 }
 
             }
+
+            log.debug("YYY calculateUniqueEvents - returns data:");
+            for (RowData rowData : idToEvent.values()) {
+                log.debug("YYY: " + Bytes.toStringBinary(rowData.getRow()));
+            }
+
             return idToEvent;
         }
 
