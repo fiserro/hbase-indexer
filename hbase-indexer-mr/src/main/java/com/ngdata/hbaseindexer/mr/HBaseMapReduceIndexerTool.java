@@ -172,8 +172,8 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
                         hbaseIndexingOpts.maxSegments});
 
         if (hbaseIndexingOpts.isDirectWrite()) {
-            CloudSolrClient solrServer = new CloudSolrClient(hbaseIndexingOpts.zkHost);
-            solrServer.setDefaultCollection(hbaseIndexingOpts.collection);
+//            CloudSolrClient solrServer = new CloudSolrClient(hbaseIndexingOpts.zkHost);
+//            solrServer.setDefaultCollection(hbaseIndexingOpts.collection);
 
             if (hbaseIndexingOpts.clearIndex) {
                 clearSolr(indexingSpec.getIndexConnectionParams());
@@ -185,12 +185,12 @@ public class HBaseMapReduceIndexerTool extends Configured implements Tool {
             job.submit();
             callback.jobStarted(job.getJobID().toString(), job.getTrackingURL());
             if (!ForkedMapReduceIndexerTool.waitForCompletion(job, hbaseIndexingOpts.isVerbose)) {
-            	solrServer.close();
+//            	solrServer.close();
                 return -1; // job failed
             }
 //            commitSolr(indexingSpec.getIndexConnectionParams());
             ForkedMapReduceIndexerTool.goodbye(job, programStartTime);
-            solrServer.close();
+//            solrServer.close();
             return 0;
         } else {
             FileSystem fileSystem = FileSystem.get(getConf());

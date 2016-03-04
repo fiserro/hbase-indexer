@@ -224,13 +224,16 @@ public class HBaseIndexerMapper extends TableMapper<Text, SolrInputDocumentWrita
         if (conf.getBoolean(INDEX_DIRECT_WRITE_CONF_KEY, false)) {
             String solrMode = getSolrMode(indexConnectionParams);
             if (solrMode.equals("cloud")) {
-                DirectSolrInputDocumentWriter writer = createCloudSolrWriter(context, indexConnectionParams);
+//                DirectSolrInputDocumentWriter writer = createCloudSolrWriter(context, indexConnectionParams);
+            	BlindDocumentWriter writer = new BlindDocumentWriter();
                 solrDocWriter = wrapInBufferedWriter(context, writer);
                 return Indexer.createIndexer(indexName, indexerConf, tableName, mapper, null, null, solrDocWriter);
             } else if (solrMode.equals("classic")) {
-                DirectSolrClassicInputDocumentWriter classicSolrWriter = createClassicSolrWriter(context, indexConnectionParams);
-                Sharder sharder = createSharder(indexConnectionParams, classicSolrWriter.getNumServers());
-                solrDocWriter = wrapInBufferedWriter(context, classicSolrWriter);
+//                DirectSolrClassicInputDocumentWriter classicSolrWriter = createClassicSolrWriter(context, indexConnectionParams);
+//                Sharder sharder = createSharder(indexConnectionParams, classicSolrWriter.getNumServers());
+                Sharder sharder = null;
+            	BlindDocumentWriter writer = new BlindDocumentWriter();
+                solrDocWriter = wrapInBufferedWriter(context, writer);
                 return Indexer.createIndexer(indexName, indexerConf, tableName, mapper, null, sharder, solrDocWriter);
             } else {
                 throw new RuntimeException("Only 'cloud' and 'classic' are valid values for solr.mode, but got " + solrMode);
