@@ -23,17 +23,21 @@
 # * limitations under the License.
 # */
 
-if [ $# -eq 0 ]
+if [ $# -lt 3 ]
   then
-    echo "Pass 1 argument: <config.xml>"
+    echo "Pass 3 arguments: <table_name> <morphline_conf>"
     exit 1
 fi
+
+TEMP_FILE=/tmp/indexer_conf.xml
+
+./bin/zkmorph.sh $1 $2 $TEMP_FILE
 
 cp=$(find `pwd` -name '*.jar' | tr '\n', ',')
 cp=$cp$(hbase mapredcp 2>&1 | tail -1 | tr ':' ',')
 echo $cp
 echo -------------------------------------------------
-HADOOP_CLASSPATH=$(hbase mapredcp 2>&1 | tail -1):/opt/hbase/conf:`pwd`/lib/* yarn jar `pwd`/tools/hbase-indexer-mr-1.7-SNAPSHOT-job.jar \
+HADOOP_CLASSPATH=$(hbase mapredcp 2>&1 | tail -1):/opt/hbase/conf:`pwd`/lib/* yarn jar `pwd`/tools/hbase-indexer-mr-1.7-aplpha-2-SNAPSHOT-job.jar \
 -Dmapreduce.jobtracker.address=localhost:54311 \
 -Dmapreduce.framework.name=yarn \
 -Dyarn.resourcemanager.address=c-sencha-s02:8032 \
@@ -43,15 +47,16 @@ HADOOP_CLASSPATH=$(hbase mapredcp 2>&1 | tail -1):/opt/hbase/conf:`pwd`/lib/* ya
 -Dmapreduce.map.memory.mb=6000 \
 -Dhbase.zookeeper.quorum=c-sencha-s01,c-sencha-s02,c-sencha-s03:2181 \
 --libjars ${cp} \
---region-split -1 \
 --log4j `pwd`/conf/log4j.properties \
---hbase-indexer-file $1 \
+--hbase-indexer-file $TEMP_FILE \
 --collection twitter_v1 \
 --reducers 0 \
 --zk-host solr1,solr2,solr3:2181/solr \
+${@:3}
 
-#--hbase-start-time 1430926300000 \
-#--hbase-end-time   1432049845000 \
+#--region-split 19 \
+#--hbase-start-time 1456963200000 \
+#--hbase-end-time 1458000000000 \
 #--hbase-start-row "\x40\x00\x00\x00\x00\x00\x00\x00" \
 #--hbase-end-row   "\x80\x00\x00\x00\x00\x00\x00\x00" \
 #-Dmapreduce.map.cpu.vcores=8 \
