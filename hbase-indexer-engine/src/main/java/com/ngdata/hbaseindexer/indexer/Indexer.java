@@ -247,9 +247,9 @@ public abstract class Indexer {
         @Override
         protected void calculateIndexUpdates(List<RowData> rowDataList, SolrUpdateCollector updateCollector) throws IOException {
 
-            Map<String, RowData> idToRowData = calculateUniqueEvents(rowDataList);
+            // Map<String, RowData> idToRowData = calculateUniqueEvents(rowDataList);
 
-            for (RowData rowData : idToRowData.values()) {
+            for (RowData rowData : rowDataList) {
                 String tableName = new String(rowData.getTable(), Charsets.UTF_8);
 
                 Result result = rowData.toResult();
