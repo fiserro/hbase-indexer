@@ -23,9 +23,9 @@
 # * limitations under the License.
 # */
 
-if [ $# -lt 3 ]
+if [ $# -lt 2 ]
   then
-    echo "Pass 3 arguments: <table_name> <morphline_conf>"
+    echo "Pass 2 arguments: <table_name> <morphline_conf>"
     exit 1
 fi
 
