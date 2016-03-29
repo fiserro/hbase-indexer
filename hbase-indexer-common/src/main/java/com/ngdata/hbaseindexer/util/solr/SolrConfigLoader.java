@@ -131,11 +131,11 @@ public class SolrConfigLoader extends SolrResourceLoader {
       } catch (InterruptedException e) {
         // Restore the interrupted status
         Thread.currentThread().interrupt();
-        log.error("", e);
+//        log.error("", e);
         throw new ZooKeeperException(SolrException.ErrorCode.SERVER_ERROR,
             "", e);
       } catch (KeeperException e) {
-        log.error("", e);
+//        log.error("", e);
         throw new ZooKeeperException(SolrException.ErrorCode.SERVER_ERROR,
             "", e);
       }

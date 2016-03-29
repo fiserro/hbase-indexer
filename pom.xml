@@ -6,7 +6,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
   <properties>
-    <version.solr>5.3.1</version.solr>
+    <version.solr>5.4.1</version.solr>
     <version.guava>18.0</version.guava>
     <version.joda-time>1.6</version.joda-time>
     <version.slf4j>1.7.5</version.slf4j>
@@ -20,7 +20,7 @@
     <version.search>1.2.0</version.search>
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
     <version.jersey>1.19</version.jersey>
-    <version.sbks-morphlines>0.4.11</version.sbks-morphlines>
+    <version.sbks-morphlines>0.4.13</version.sbks-morphlines>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -424,7 +424,11 @@
         <version>${version.hadoop.hbase98}</version>
         <scope>test</scope>
       </dependency>
-
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+        <version>${version.hadoop.hbase98}</version>
+      </dependency>
       <dependency>
         <groupId>org.apache.hbase</groupId>
         <artifactId>hbase</artifactId>

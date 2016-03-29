@@ -34,10 +34,11 @@ TEMP_FILE=/tmp/indexer_conf.xml
 ./bin/zkmorph.sh $1 $2 $TEMP_FILE
 
 cp=$(find `pwd` -name '*.jar' | tr '\n', ',')
-cp=$cp$(hbase mapredcp 2>&1 | tail -1 | tr ':' ',')
+#cp=$cp$(hbase mapredcp 2>&1 | tail -1 | tr ':' ',')
 echo $cp
 echo -------------------------------------------------
-HADOOP_CLASSPATH=$(hbase mapredcp 2>&1 | tail -1):/opt/hbase/conf:`pwd`/lib/* yarn jar `pwd`/tools/hbase-indexer-mr-1.7-aplpha-2-SNAPSHOT-job.jar \
+export HADOOP_USER_CLASSPATH_FIRST=true
+HADOOP_CLASSPATH=/opt/hbase/conf:`pwd`/lib/*:$(hbase mapredcp 2>&1 | tail -1) yarn jar `pwd`/tools/hbase-indexer-mr-1.7-aplpha-2-SNAPSHOT-job.jar \
 -Dmapreduce.jobtracker.address=localhost:54311 \
 -Dmapreduce.framework.name=yarn \
 -Dyarn.resourcemanager.address=c-sencha-s02:8032 \
@@ -46,6 +47,8 @@ HADOOP_CLASSPATH=$(hbase mapredcp 2>&1 | tail -1):/opt/hbase/conf:`pwd`/lib/* ya
 -Dmapreduce.map.cpu.vcores=8 \
 -Dmapreduce.map.memory.mb=6000 \
 -Dhbase.zookeeper.quorum=c-sencha-s01,c-sencha-s02,c-sencha-s03:2181 \
+-Dmapreduce.user.classpath.first=true \
+-Dmapreduce.job.user.classpath.first=true \
 --libjars ${cp} \
 --log4j `pwd`/conf/log4j.properties \
 --hbase-indexer-file $TEMP_FILE \
