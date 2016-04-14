@@ -46,6 +46,7 @@ HADOOP_CLASSPATH=/opt/hbase/conf:`pwd`/lib/*:$(hbase mapredcp 2>&1 | tail -1) ya
 -Dhbase.client.scanner.caching=400 \
 -Dmapreduce.map.cpu.vcores=8 \
 -Dmapreduce.map.memory.mb=6000 \
+-Dmapreduce.map.speculative=false \
 -Dhbase.zookeeper.quorum=c-sencha-s01,c-sencha-s02,c-sencha-s03:2181 \
 -Dmapreduce.user.classpath.first=true \
 -Dmapreduce.job.user.classpath.first=true \
