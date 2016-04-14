@@ -17,6 +17,11 @@ package com.ngdata.sep.demo;
 
 import java.util.List;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.ngdata.sep.EventListener;
 import com.ngdata.sep.PayloadExtractor;
 import com.ngdata.sep.SepEvent;
@@ -26,55 +31,51 @@ import com.ngdata.sep.impl.SepConsumer;
 import com.ngdata.sep.impl.SepModelImpl;
 import com.ngdata.sep.util.zookeeper.ZkUtil;
 import com.ngdata.sep.util.zookeeper.ZooKeeperItf;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.util.Bytes;
 
 /**
  * A simple consumer that just logs the events.
  */
 public class LoggingConsumer {
-    public static void main(String[] args) throws Exception {
-        Configuration conf = HBaseConfiguration.create();
-        conf.setBoolean("hbase.replication", true);
+	public static void main(String[] args) throws Exception {
+		Configuration conf = HBaseConfiguration.create();
+		conf.setBoolean("hbase.replication", true);
 
-        ZooKeeperItf zk = ZkUtil.connect("localhost", 20000);
-        SepModel sepModel = new SepModelImpl(zk, conf);
+		ZooKeeperItf zk = ZkUtil.connect("localhost", 20000);
+		SepModel sepModel = new SepModelImpl(zk, conf);
 
-        final String subscriptionName = "logger";
+		final String subscriptionName = "logger";
 
-        if (!sepModel.hasSubscription(subscriptionName)) {
-            sepModel.addSubscriptionSilent(subscriptionName);
-        }
+		if (!sepModel.hasSubscription(subscriptionName)) {
+			sepModel.addSubscriptionSilent(subscriptionName, null);
+		}
 
-        PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes("sep-user-demo"), Bytes.toBytes("info"),
-                Bytes.toBytes("payload"));
+		PayloadExtractor payloadExtractor = new BasePayloadExtractor(Bytes.toBytes("sep-user-demo"), Bytes.toBytes("info"),
+				Bytes.toBytes("payload"));
 
-        SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, new EventLogger(), 1, "localhost", zk, conf,
-                payloadExtractor);
+		SepConsumer sepConsumer = new SepConsumer(subscriptionName, 0, new EventLogger(), 1, "localhost", zk, conf,
+				payloadExtractor);
 
-        sepConsumer.start();
-        System.out.println("Started");
+		sepConsumer.start();
+		System.out.println("Started");
 
-        while (true) {
-            Thread.sleep(Long.MAX_VALUE);
-        }
-    }
+		while (true) {
+			Thread.sleep(Long.MAX_VALUE);
+		}
+	}
 
-    private static class EventLogger implements EventListener {
-        @Override
-        public void processEvents(List<SepEvent> sepEvents) {
-            for (SepEvent sepEvent : sepEvents) {
-                System.out.println("Received event:");
-                System.out.println("  table = " + Bytes.toString(sepEvent.getTable()));
-                System.out.println("  row = " + Bytes.toString(sepEvent.getRow()));
-                System.out.println("  payload = " + Bytes.toString(sepEvent.getPayload()));
-                System.out.println("  key values = ");
-                for (KeyValue kv : sepEvent.getKeyValues()) {
-                    System.out.println("    " + kv.toString());
-                }
-            }
-        }
-    }
+	private static class EventLogger implements EventListener {
+		@Override
+		public void processEvents(List<SepEvent> sepEvents) {
+			for (SepEvent sepEvent : sepEvents) {
+				System.out.println("Received event:");
+				System.out.println("  table = " + Bytes.toString(sepEvent.getTable()));
+				System.out.println("  row = " + Bytes.toString(sepEvent.getRow()));
+				System.out.println("  payload = " + Bytes.toString(sepEvent.getPayload()));
+				System.out.println("  key values = ");
+				for (KeyValue kv : sepEvent.getKeyValues()) {
+					System.out.println("    " + kv.toString());
+				}
+			}
+		}
+	}
 }

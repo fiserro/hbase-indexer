@@ -15,44 +15,51 @@
  */
 package com.ngdata.sep;
 
-import org.apache.zookeeper.KeeperException;
-
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.TableName;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Defines methods for adding and removing subscriptions on the Side-Effect Processor (SEP).
  */
 public interface SepModel {
 
-    /** Configuration key for storing the path of the root ZooKeeper node. */
-    public static final String ZK_ROOT_NODE_CONF_KEY = "hbasesep.zookeeper.znode.parent";
-    
-    /** Default root ZooKeeper node */
-    public static final String DEFAULT_ZK_ROOT_NODE = "/ngdata/sep/hbase-slave";
+	/** Configuration key for storing the path of the root ZooKeeper node. */
+	public static final String ZK_ROOT_NODE_CONF_KEY = "hbasesep.zookeeper.znode.parent";
 
-    /**
-     * Adds a subscription.
-     * 
-     * @throws IllegalStateException if a subscription by that name already exists.
-     */
-    void addSubscription(String name) throws InterruptedException, KeeperException, IOException;
+	/** Default root ZooKeeper node */
+	public static final String DEFAULT_ZK_ROOT_NODE = "/ngdata/sep/hbase-slave";
 
-    /**
-     * Adds a subscription, doesn't fail if a subscription by that name exists.
-     */
-    boolean addSubscriptionSilent(String name) throws InterruptedException, KeeperException, IOException;
+	/**
+	 * Adds a subscription.
+	 * 
+	 * @throws IllegalStateException
+	 *             if a subscription by that name already exists.
+	 */
+	void addSubscription(String name,
+			Map<TableName, ? extends Collection<String>> tableCfs) throws InterruptedException, KeeperException, IOException;
 
-    /**
-     * Removes a subscription.
-     * 
-     * @throws IllegalStateException if no subscription by that name exists.
-     */
-    void removeSubscription(String name) throws IOException;
+	/**
+	 * Adds a subscription, doesn't fail if a subscription by that name exists.
+	 */
+	boolean addSubscriptionSilent(String name,
+			Map<TableName, ? extends Collection<String>> tableCfs) throws InterruptedException, KeeperException, IOException;
 
-    /**
-     * Removes a subscription, doesn't fail if there is no subscription with that name.
-     */
-    boolean removeSubscriptionSilent(String name) throws IOException;
+	boolean hasSubscription(String name) throws IOException;
 
-    boolean hasSubscription(String name) throws IOException;
+	/**
+	 * Removes a subscription.
+	 * 
+	 * @throws IllegalStateException
+	 *             if no subscription by that name exists.
+	 */
+	void removeSubscription(String name) throws IOException;
+
+	/**
+	 * Removes a subscription, doesn't fail if there is no subscription with that name.
+	 */
+	boolean removeSubscriptionSilent(String name) throws IOException;
 }

@@ -18,10 +18,9 @@ package com.ngdata.hbaseindexer.master;
 import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_ADDED;
 import static com.ngdata.hbaseindexer.model.api.IndexerModelEventType.INDEXER_UPDATED;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -36,6 +35,8 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.ngdata.hbaseindexer.ConfKeys;
 import com.ngdata.hbaseindexer.SolrConnectionParams;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactory;
+import com.ngdata.hbaseindexer.conf.IndexerComponentFactoryUtil;
 import com.ngdata.hbaseindexer.model.api.*;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.BatchIndexingState;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition.IncrementalIndexingState;
@@ -52,6 +53,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.mapred.*;
 import org.apache.zookeeper.KeeperException;
 
@@ -243,12 +245,18 @@ public class IndexerMaster {
                 // Read current situation of record and assure it is still actual
                 IndexerDefinition indexer = indexerModel.getFreshIndexer(indexerName);
                 if (needsSubscriptionIdAssigned(indexer)) {
-                    // We assume we are the only process which creates subscriptions which begin with the
+                	String indexerComponentFactory = indexer.getIndexerComponentFactory();
+                	ByteArrayInputStream configuration = new ByteArrayInputStream(indexer.getConfiguration());
+                	IndexerComponentFactory factory = IndexerComponentFactoryUtil.getComponentFactory(indexerComponentFactory, configuration, indexer.getConnectionParams());
+                	String tableName = factory.createIndexerConf().getTable();
+                    Map<TableName, Collection<String>> tableCfs = new HashMap<TableName, Collection<String>>();
+                    tableCfs.put(TableName.valueOf(tableName), Collections.<String>emptyList());
+                	// We assume we are the only process which creates subscriptions which begin with the
                     // prefix "Indexer:". This way we are sure there are no naming conflicts or conflicts
                     // due to concurrent operations (e.g. someone deleting this subscription right after we
                     // created it).
                     String subscriptionId = subscriptionId(indexer.getName());
-                    sepModel.addSubscription(subscriptionId);
+                    sepModel.addSubscription(subscriptionId, tableCfs);
                     indexer = new IndexerDefinitionBuilder().startFrom(indexer).subscriptionId(subscriptionId).build();
                     indexerModel.updateIndexerInternal(indexer);
                     log.info("Assigned subscription ID '" + subscriptionId + "' to indexer '" + indexerName + "'");
