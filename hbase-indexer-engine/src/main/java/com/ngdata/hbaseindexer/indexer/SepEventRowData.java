@@ -19,11 +19,14 @@ import static com.ngdata.sep.impl.HBaseShims.newResult;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.TreeSet;
+
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
 
 import com.google.common.collect.Lists;
 import com.ngdata.sep.SepEvent;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Result;
+
 
 /**
  * {@code RowData} implementation that wraps an incoming SepEvent for
@@ -59,18 +62,20 @@ public class SepEventRowData implements RowData {
      */
     @Override
     public Result toResult() {
-        
-        List<KeyValue> filteredKeyValues = Lists.newArrayListWithCapacity(sepEvent.getKeyValues().size());
-        
-        for (KeyValue kv : getKeyValues()) {
+        // A Result object requires that the KeyValues are sorted (e.g., it does binary search on them)
+        TreeSet<KeyValue> filteredKeyValues = new TreeSet<KeyValue>(KeyValue.COMPARATOR);
+        List<KeyValue> values = getKeyValues();
+
+        // We need to iterate backwards because we need to keep latest version of value
+        // in column qualifier and treeSet keeps the old one when we add the new one
+        Collections.reverse(values);
+        for (KeyValue kv : values) {
             if (!kv.isDelete() && !kv.isDeleteFamily()) {
                 filteredKeyValues.add(kv);
             }
         }
 
-        // A Result object requires that the KeyValues are sorted (e.g., it does binary search on them)
-        Collections.sort(filteredKeyValues, KeyValue.COMPARATOR);
-        return newResult(filteredKeyValues);
+        return newResult(Lists.newArrayList(filteredKeyValues));
     }
 
 }
