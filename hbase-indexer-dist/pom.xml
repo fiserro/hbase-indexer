@@ -45,6 +45,11 @@
     </dependency>
     <dependency>
       <groupId>com.socialbakers.morphlines</groupId>
+      <artifactId>morphlines-kinesis</artifactId>
+      <version>${version.sbks-morphlines}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.socialbakers.morphlines</groupId>
       <artifactId>morphlines-json</artifactId>
       <version>${version.sbks-morphlines}</version>
     </dependency>
@@ -56,6 +61,16 @@
     <dependency>
       <groupId>com.socialbakers.morphlines</groupId>
       <artifactId>morphlines-protobuf</artifactId>
+      <version>${version.sbks-morphlines}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.socialbakers.morphlines</groupId>
+      <artifactId>morphlines-rabbitmq</artifactId>
+      <version>${version.sbks-morphlines}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.socialbakers.morphlines</groupId>
+      <artifactId>morphlines-zookeeper</artifactId>
       <version>${version.sbks-morphlines}</version>
     </dependency>
   </dependencies>
