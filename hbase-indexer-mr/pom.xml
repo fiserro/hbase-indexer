@@ -37,6 +37,10 @@
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.apache.hbase</groupId>
+      <artifactId>hbase-client</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.hbase</groupId>
@@ -49,6 +53,10 @@
       <artifactId>hbase-hadoop-compat</artifactId>
       <type>test-jar</type>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.curator</groupId>
+      <artifactId>curator-client</artifactId>
     </dependency>
 
     <dependency>
@@ -114,6 +122,14 @@
     <dependency>
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-servlet</artifactId>
+    </dependency>
+    <dependency>
+        <groupId>com.ngdata</groupId>
+        <artifactId>hbase-indexer-cli</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.socialbakers</groupId>
+      <artifactId>hbase-sbks-api</artifactId>
     </dependency>
   </dependencies>
 
