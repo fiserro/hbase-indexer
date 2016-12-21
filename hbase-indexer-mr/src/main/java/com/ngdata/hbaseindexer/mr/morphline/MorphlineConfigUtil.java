@@ -3,9 +3,7 @@ package com.ngdata.hbaseindexer.mr.morphline;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ngdata.hbaseindexer.mr.zookeeper.ZkConfigAccessor;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigFactory;
-import com.typesafe.config.ConfigValueFactory;
+import com.typesafe.config.*;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -110,9 +108,12 @@ public class MorphlineConfigUtil {
 	 * @return
 	 */
 	public Config modifyConfig(Object parValue) {
-		Config morphline = config.getConfigList("morphlines").get(0);
+		ConfigList configList = config.getList("morphlines");
+		Config morphline = ((ConfigObject) configList.get(0)).toConfig();
 		Config modifiedMorphline = modifyMorphline(morphline, parValue);
-		return config.withValue("morphlines", ConfigValueFactory.fromIterable(Collections.singletonList(modifiedMorphline)));
+		List<Object> modifiedConfigList = configList.unwrapped();
+		modifiedConfigList.set(0, modifiedMorphline.root().unwrapped());
+		return config.withValue("morphlines", ConfigValueFactory.fromIterable(modifiedConfigList));
 	}
 
 	private static Config getDocMorphline(Document document) {
@@ -123,7 +124,7 @@ public class MorphlineConfigUtil {
 	}
 
 	public static void setDocMorphline(Document document, Config morphlineConfig) {
-		String morphlineString = morphlineConfig.root().render();
+		String morphlineString = morphlineConfig.root().render(ConfigRenderOptions.concise().setJson(false).setFormatted(true));
 		setDocMorphline(document, morphlineString);
 	}
 

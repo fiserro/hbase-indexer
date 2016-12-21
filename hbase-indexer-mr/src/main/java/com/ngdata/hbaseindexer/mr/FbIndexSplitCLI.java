@@ -1,7 +1,6 @@
 package com.ngdata.hbaseindexer.mr;
 
 import com.google.common.collect.Lists;
-import com.ngdata.hbaseindexer.ConfKeys;
 import com.ngdata.hbaseindexer.cli.BaseIndexCli;
 import com.ngdata.hbaseindexer.cli.UpdateIndexerCli;
 import com.ngdata.hbaseindexer.model.api.IndexerDefinition;
@@ -17,7 +16,6 @@ import com.typesafe.config.Config;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
@@ -37,9 +35,13 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.concurrent.CompletableFuture.allOf;
 
@@ -48,27 +50,31 @@ import static java.util.concurrent.CompletableFuture.allOf;
  */
 public class FbIndexSplitCLI extends BaseIndexCli {
 
+	private boolean dryRun = false;
+
 	private static final byte[] INDEX_WINDOW_ENTRY_CF = Bytes.toBytes("d");
 	private static final byte[] TO_BE_DONE_STATE = Bytes.toBytes(IndexWindowEntry.State.TO_BE_DONE.getState());
 
 	private Logger log = LoggerFactory.getLogger(FbIndexSplitCLI.class);
 
 	protected OptionSpec<String> splitWindowsTableSpec;
+	protected OptionSpec<Boolean> dryRunSpec;
+	protected OptionSpec<String> commandSpec;
+	protected OptionSpec<String> windowSpec;
 
 	private String[] args;
-	private Configuration conf = new Configuration();
 	private HTable indexWindowsTable;
 	private KeyBuilder indexWindowKeyBuilder;
 	private HbaseVoPutter<IndexWindowEntry> indexWindowEntryHBasePutter;
 
-	private static final String FB_POSTS_V2 = "hbase.zookeeper.fb_posts_v2_indexer_name";
-	private static final String FB_COMMENTS_V2 = "hbase.zookeeper.fb_comments_v2_indexer_name";
+	private static final String FB_POSTS_V2 = "hbase.indexer.fb_posts_v2_indexer";
+	private static final String FB_COMMENTS_V2 = "hbase.indexer.fb_comments_v2_indexer";
 
-	private static final String FB_POSTS_V3 = "hbase.zookeeper.fb_posts_v3_indexer_name";
-	private static final String FB_COMMENTS_V3 = "hbase.zookeeper.fb_comments_v3_indexer_name";
+	private static final String FB_POSTS_V3 = "hbase.indexer.fb_posts_v3_indexer";
+	private static final String FB_COMMENTS_V3 = "hbase.indexer.fb_comments_v3_indexer";
 
-	private static final String FB_POSTS_V3_BATCH = "hbase.zookeeper.fb_posts_v3_indexer_name_batch";
-	private static final String FB_COMMENTS_V3_BATCH = "hbase.zookeeper.fb_comments_v3_indexer_name_batch";
+	private static final String FB_POSTS_V3_BATCH = "hbase.indexer.fb_posts_v3_indexer_batch";
+	private static final String FB_COMMENTS_V3_BATCH = "hbase.indexer.fb_comments_v3_indexer_batch";
 
 	private static final Map<String, String[]> INDEXER_CONFIGS = new HashMap();
 
@@ -105,17 +111,34 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 				.withRequiredArg().ofType(String.class)
 				.defaultsTo("fb_split_windows");
 
+		commandSpec = parser
+				.acceptsAll(Lists.newArrayList("command"), "split command (split or addwindow)")
+				.withRequiredArg().ofType(String.class)
+				.required();
+
+		windowSpec = parser
+				.acceptsAll(Lists.newArrayList("window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+		dryRunSpec = parser
+				.acceptsAll(Lists.newArrayList("dry-run"), "dry run flag")
+				.withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE);
+
 		return parser;
 	}
 
 	public void run() throws Exception {
-		System.out.println("run(): args: "+Arrays.toString(args));
+		System.out.println("run(): args: " + Arrays.toString(args));
 		run(args);
 	}
 
 	public void run(OptionSet options) throws Exception {
 
-		System.out.println("run(): options: "+options);
+		System.out.println("run(): options: " + options.specs());
+		dryRun = dryRunSpec.value(options);
+		System.out.println("dry run: " + dryRun);
+
 		super.run(options);
 
 		indexWindowKeyBuilder = new IndexWindowEntryKeyBuilder();
@@ -125,10 +148,6 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 
 		conf.set("hbase.zookeeper.quorum", getZkConnectionString());
 
-		String zkPathPrefix = conf.get(ConfKeys.ZK_ROOT_NODE);
-		if (zkPathPrefix != null && !zkPathPrefix.equals("") && !zkPathPrefix.endsWith("/")) {
-			zkPathPrefix += "/";
-		}
 		conf.set(FB_POSTS_V2, "fb_posts_v2");
 		conf.set(FB_COMMENTS_V2, "fb_comments_v2");
 
@@ -138,58 +157,24 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		conf.set(FB_POSTS_V3_BATCH, conf.get(FB_POSTS_V3));
 		conf.set(FB_COMMENTS_V3_BATCH, conf.get(FB_COMMENTS_V3));
 
-		indexWindowsTable = new HTable(conf, "fb_split_windows");
+		indexWindowsTable = new HTable(conf, splitWindowsTableSpec.value(options));
 		try {
 
-			IndexWindowEntry indexWindowEntry = getIndexWindowEntry();
-			if (indexWindowEntry != null) {
-				try {
-					String[] window = indexWindowEntry.window;
-					if (window.length == 0) {
-						log.info("no index window acquired");
-						return;
+			String command = commandSpec.value(options);
+
+			switch (command) {
+				case "addwindow":
+					String windowText = windowSpec.value(options);
+					if (windowText == null) {
+						throw new IllegalArgumentException("window not specified, use --window with comma separated index names");
 					}
-					log.info("index window: {}", Arrays.toString(window));
-
-					prepareConfigs(window);
-
-					updateIndexer("fb_posts_v3", getIndexerConfigFile(FB_POSTS_V3));
-					updateIndexer("fb_comments_v3", getIndexerConfigFile(FB_COMMENTS_V3));
-
-					allOf(
-							runReindexJob(args, getIndexerConfigFile(FB_POSTS_V3_BATCH)).thenRun(() -> {
-								try {
-									updateIndexer("fb_posts_v2", getIndexerConfigFile(FB_POSTS_V2));
-								} catch (Exception e) {
-									log.error("Exception when updating fb_posts_v2 indexer", e);
-									throw new RuntimeException(e);
-								}
-							}),
-
-							runReindexJob(args, getIndexerConfigFile(FB_COMMENTS_V3_BATCH)).thenRun(() -> {
-								try {
-									updateIndexer("fb_comments_v2", getIndexerConfigFile(FB_COMMENTS_V2));
-								} catch (Exception e) {
-									log.error("Exception when updating fb_comments_v2 indexer", e);
-									throw new RuntimeException(e);
-								}
-							})
-
-					).join();
-
-					indexWindowEntry.state = IndexWindowEntry.State.DONE.getState();
-					indexWindowEntry.stateTime = System.currentTimeMillis();
-					updateIndexWindowEntry(indexWindowEntry);
-
-				} catch (Exception e) {
-					indexWindowEntry.state = IndexWindowEntry.State.FAILED.getState();
-					indexWindowEntry.stateTime = System.currentTimeMillis();
-					updateIndexWindowEntry(indexWindowEntry);
-					throw e;
-				}
-
-			} else {
-				log.info("no index window entry acquired");
+					String[] addWindow = Arrays.stream(windowText.split(","))
+							.map(String::trim).toArray(String[]::new);
+					addWindow(addWindow);
+					break;
+				case "split":
+					splitWindow();
+					break;
 			}
 
 		} finally {
@@ -199,6 +184,99 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		return;
 	}
 
+	private void splitWindow() throws Exception {
+		IndexWindowEntry indexWindowEntry = getIndexWindowEntry();
+		if (indexWindowEntry != null) {
+
+			String[] window = indexWindowEntry.window;
+			if (window.length == 0) {
+				System.out.println("no index window acquired, nothing to do");
+				return;
+			}
+			System.out.println("index window: " + Arrays.toString(window));
+
+			prepareConfigs(window);
+
+			try {
+				updateIndexer("fb_posts_v3", getIndexerConfigFile(FB_POSTS_V3));
+				updateIndexer("fb_comments_v3", getIndexerConfigFile(FB_COMMENTS_V3));
+
+				List<Integer> results = new ArrayList<>();
+
+				allOf(
+						runReindexJob(getIndexerConfigFile(FB_POSTS_V3_BATCH), 0).thenApply((result) -> {
+							results.add(result);
+							if (result == 0) {
+								try {
+									updateIndexer("fb_posts_v2", getIndexerConfigFile(FB_POSTS_V2));
+								} catch (Exception e) {
+									System.err.println("Exception when updating fb_posts_v2 indexer " + e);
+									e.printStackTrace();
+									throw new RuntimeException(e);
+								}
+								return 0;
+							} else {
+								System.err.println("Reindex job result is "+result+". Not running fb_posts_v2 indexer update");
+								return result;
+							}
+						}),
+
+						runReindexJob(getIndexerConfigFile(FB_COMMENTS_V3_BATCH), 10000).thenApply((result) -> {
+							results.add(result);
+							if (result == 0) {
+								try {
+									updateIndexer("fb_comments_v2", getIndexerConfigFile(FB_COMMENTS_V2));
+								} catch (Exception e) {
+									System.err.println("Exception when updating fb_comments_v2 indexer " + e);
+									e.printStackTrace();
+									throw new RuntimeException(e);
+								}
+								return 0;
+							} else {
+								System.err.println("Reindex job result is "+result+". Not running fb_comments_v2 indexer update");
+								return result;
+							}
+						})
+
+				).join();
+
+				if (results.stream().anyMatch((result) -> result != 0)) {
+					throw new RuntimeException("Some result were not 0, results: "+Arrays.toString(results.toArray()));
+				}
+
+				indexWindowEntry.state = IndexWindowEntry.State.DONE.getState();
+				indexWindowEntry.stateTime = System.currentTimeMillis();
+				updateIndexWindowEntry(indexWindowEntry);
+
+			} catch (Exception e) {
+				indexWindowEntry.state = IndexWindowEntry.State.FAILED.getState();
+				indexWindowEntry.stateTime = System.currentTimeMillis();
+				updateIndexWindowEntry(indexWindowEntry);
+				throw e;
+			}
+
+		} else {
+			System.out.println("no index window entry acquired");
+		}
+	}
+
+	private void addWindow(String[] window) throws Exception {
+		if (window.length == 0) {
+			System.out.println("window is empty, nothing to do");
+			return;
+		}
+
+		IndexWindowEntry prevIndexWindowEntry = getIndexWindowEntry();
+
+		IndexWindowEntry indexWindowEntry = new IndexWindowEntry();
+		indexWindowEntry.state = IndexWindowEntry.State.TO_BE_DONE.getState();
+		indexWindowEntry.stateTime = System.currentTimeMillis();
+		indexWindowEntry.order = prevIndexWindowEntry != null ? (prevIndexWindowEntry.order + 1) : 1;
+		indexWindowEntry.window = window;
+		System.out.println("adding window " + Arrays.toString(window) + ", order " + indexWindowEntry.order);
+		updateIndexWindowEntry(indexWindowEntry);
+	}
+
 	@Override
 	protected String getCmdName() {
 		return "split-indexes";
@@ -206,13 +284,18 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 
 	private void updateIndexer(String name, File file) throws Exception {
 
-		UpdateIndexerCli.main(new String[]{
-				"--name", name,  // indexer name
-				"--indexer-conf", file.getAbsolutePath(),  // XML file
-				"--zookeeper", conf.get("hbase.zookeeper.quorum"),
-				"--connection-param", "solr.zk=" + conf.get("hbase.zookeeper.quorum")+"/solr",
-				"--batch", "??"  // TODO
-		});
+		if (!dryRun) {
+			System.out.println("running indexer update " + name + " with config file " + file);
+			UpdateIndexerCli.main(new String[]{
+					"--name", name,  // indexer name
+					"--indexer-conf", file.getAbsolutePath(),  // XML file
+					"--zookeeper", conf.get("hbase.zookeeper.quorum"),
+					"--connection-param", "solr.zk=" + conf.get("hbase.zookeeper.quorum") + "/solr"
+			});
+
+		} else {
+			System.out.println("dry run: here will be indexer " + name + " updated with config file " + file);
+		}
 	}
 
 	private IndexWindowEntry getIndexWindowEntry() throws Exception {
@@ -235,7 +318,7 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		synchronized (FbIndexSplitCLI.class) {
 			try (ResultScanner scanner = indexWindowsTable.getScanner(scan)) {
 				Result windowResult = scanner.next();
-				if (!windowResult.isEmpty()) {
+				if (windowResult != null && !windowResult.isEmpty()) {
 					indexWindowEntry = resultMapper.mapRow(windowResult, new InputIdsFields());
 					indexWindowEntry.state = IndexWindowEntry.State.IN_PROGRESS.getState();
 					indexWindowEntry.stateTime = System.currentTimeMillis();
@@ -253,13 +336,23 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		for (String v3IndexerNamePar : INDEXER_CONFIGS.get("v3")) {
 			String indexerName = conf.get(v3IndexerNamePar);
 
+			String[] v3Window = Arrays.stream(window).map(indexName ->
+					indexName.replaceAll("facebook_v2", indexerName)
+			).toArray(String[]::new);
+
+			System.out.println("" + indexerName + ": v3 RT include window add: " + Arrays.toString(v3Window));
+
 			byte[] mlV3IndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
 				List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
 				if (includeIndexes == null) {
 					includeIndexes = new ArrayList<>();
 					loadESConf.put("includeIndexes", includeIndexes);
 				}
-				includeIndexes.addAll(Arrays.asList(window));
+				for (String indexName : v3Window) {
+					if (!includeIndexes.contains(indexName)) {
+						includeIndexes.add(indexName);
+					}
+				}
 				return null;
 			});
 
@@ -270,6 +363,12 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		for (String v3IndexerNamePar : INDEXER_CONFIGS.get("v3_batch")) {
 			String indexerName = conf.get(v3IndexerNamePar);
 
+			String[] v3Window = Arrays.stream(window).map(indexName ->
+					indexName.replaceAll("facebook_v2", indexerName)
+			).toArray(String[]::new);
+
+			System.out.println("" + indexerName + ": v3 batch include window: " + Arrays.toString(v3Window));
+
 			byte[] mlV3BatchIndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
 				List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
 				if (includeIndexes == null) {
@@ -278,7 +377,11 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 				} else {
 					includeIndexes.clear();
 				}
-				includeIndexes.addAll(Arrays.asList(window));
+				for (String indexName : v3Window) {
+					if (!includeIndexes.contains(indexName)) {
+						includeIndexes.add(indexName);
+					}
+				}
 				return null;
 			});
 
@@ -289,13 +392,19 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		for (String v2IndexerNamePar : INDEXER_CONFIGS.get("v2")) {
 			String indexerName = conf.get(v2IndexerNamePar);
 
+			System.out.println("" + indexerName + ": v2 RT exclude window add: " + Arrays.toString(window));
+
 			byte[] mlV2IndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
 				List<String> excludeIndexes = (List<String>) loadESConf.get("excludeIndexes");
 				if (excludeIndexes == null) {
 					excludeIndexes = new ArrayList<>();
 					loadESConf.put("excludeIndexes", excludeIndexes);
 				}
-				excludeIndexes.addAll(Arrays.asList(window));
+				for (String indexName : window) {
+					if (!excludeIndexes.contains(indexName)) {
+						excludeIndexes.add(indexName);
+					}
+				}
 				return null;
 			});
 
@@ -303,34 +412,62 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		}
 	}
 
-	private CompletableFuture<Integer> runReindexJob(String[] args, File config) {
-		return CompletableFuture.supplyAsync(() -> {
-			String[] args2 = new String[args.length + 2];
-			System.arraycopy(args, 0, args2, 0, args.length);
-			args2[args2.length - 2] = "--hbase-indexer-file";
-			args2[args2.length - 1] = config.getAbsolutePath();
+	private CompletableFuture<Integer> runReindexJob(File indexerConfig, long delay) throws IOException, InterruptedException {
 
-			int result;
-			try {
-				result = ToolRunner.run(conf, new HBaseMapReduceIndexerTool(), args2);
-			} catch (Exception e) {
-				e.printStackTrace();
-				result = -1;
-			}
+		Thread.sleep(delay);
 
-			// TODO: invazivni zmeny (delete old indexes) - mozna radsi delat rucne..
+		CompletableFuture<Integer> future;
 
-			return result;
-		});
+		String[] jobArgs = new String[] {
+				"--zk-host", conf.get("hbase.zookeeper.quorum"),
+				"--hbase-indexer-file", indexerConfig.getAbsolutePath(),
+				"--collection", "remove_this_please",
+				"--reducers", "0"//,
+				//"--log4j", "/opt/hbase-indexer/conf/log4j.properties"
+		};
+
+		if (!dryRun) {
+			future = CompletableFuture.supplyAsync(() -> {
+
+				System.out.println("running reindex with arguments " + Arrays.toString(jobArgs));
+
+				int result;
+				try {
+					result = ToolRunner.run(conf, new HBaseMapReduceIndexerTool(), jobArgs);
+				} catch (Exception e) {
+					e.printStackTrace();
+					result = -1;
+				}
+
+				System.out.println("reindex with arguments " + Arrays.toString(jobArgs)+" result: "+result);
+
+				// TODO: invazivni zmeny (delete old indexes) - mozna radsi delat rucne..
+
+				return result;
+			});
+
+		} else {
+			future = CompletableFuture.supplyAsync(() -> {
+				System.out.println("dry run: here will be reindex executed with arguments " + Arrays.toString(jobArgs));
+				return 0;
+			});
+		}
+
+		return future;
 	}
 
 	private void updateIndexWindowEntry(IndexWindowEntry indexWindowEntry) throws InterruptedIOException, RetriesExhaustedWithDetailsException {
-		Put put = indexWindowEntryHBasePutter.createPut(indexWindowEntry);
-		indexWindowsTable.put(put);
+		if (!dryRun) {
+			Put put = indexWindowEntryHBasePutter.createPut(indexWindowEntry);
+			indexWindowsTable.put(put);
+			System.out.println("index window entry put (state " + indexWindowEntry.state + ")");
+		} else {
+			System.out.println("dry run: here will be index window entry put (state " + indexWindowEntry.state + ")");
+		}
 	}
 
 	private static File getIndexerConfigFile(String indexerName) {
-		return new File(indexerName+"-tmp");
+		return new File("/tmp", indexerName + ".xml");
 	}
 
 	private static byte[] getIndexWindowEntryQualifier(String classFieldName) throws NoSuchFieldException {

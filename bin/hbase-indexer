@@ -237,7 +237,7 @@ fi
 unset IFS
 
 #Set the right GC options based on the what we are running
-declare -a client_cmds=("add-indexer" "list-indexers" "update-indexer" "delete-indexer" "version" "replication-status" "replication-wait" "split-indexes")
+declare -a client_cmds=("add-indexer" "list-indexers" "update-indexer" "delete-indexer" "version" "replication-status" "replication-wait")
 for cmd in ${client_cmds[@]}; do
 	if [[ $cmd == $COMMAND ]]; then
 		client=true

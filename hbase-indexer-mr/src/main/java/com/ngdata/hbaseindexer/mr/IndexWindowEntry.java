@@ -36,6 +36,7 @@ public class IndexWindowEntry {
 
 	public enum State {
 		TO_BE_DONE("to_be_done"),
+		SKIP("skip"),
 		IN_PROGRESS("in_progress"),
 		DONE("done"),
 		FAILED("failed");

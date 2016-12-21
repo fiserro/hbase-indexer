@@ -145,4 +145,8 @@ public final class MorphlineResultToSolrMapper implements ResultToSolrMapper, Co
         localMorphlineMapper.get().map(result, solrUpdateWriter);
     }
 
+    @Override
+    public void cleanup() {
+        localMorphlineMapper.get().cleanup();
+    }
 }

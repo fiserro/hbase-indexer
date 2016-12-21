@@ -22,7 +22,7 @@
 		<version.search>1.2.0</version.search>
 		<version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
 		<version.jersey>1.19</version.jersey>
-		<version.sbks-morphlines>0.5.2</version.sbks-morphlines>
+		<version.sbks-morphlines>0.5.3</version.sbks-morphlines>
 		<version.hbase-sbks>0.1.26</version.hbase-sbks>
 
 		<!-- Tells maven plugins what file encoding to use -->
