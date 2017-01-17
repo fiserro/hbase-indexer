@@ -12,6 +12,7 @@ if [ $# -lt 3 ]
     exit 1
 fi
 
+#export HADOOP_USER_CLASSPATH_FIRST=true; export HADOOP_CLASSPATH=/opt/hbase/conf:`pwd`/lib/*:$(hbase mapredcp 2>&1 | tail -1)
 cp=$(find `pwd` -name '*.jar' | tr '\n', ',')
 ./bin/hbase-indexer split-indexes --zookeeper $1:2181 --split-windows-table $2 --command $3 ${@:4}./bin/hbase-indexer split-indexes --zookeeper $1:2181 --split-windows-table $2 --command $3 ${@:4} \
---reindex-args "-Dmapreduce.user.classpath.first=true -Dmapreduce.job.user.classpath.first=true -Dyarn.resourcemanager.address=c-sencha-s02:8032 -Dmapreduce.map.speculative=false -Dmapreduce.map.cpu.vcores=8 --libjars ${cp}"
+--reindex-args "-Dmapreduce.user.classpath.first=true -Dmapreduce.job.user.classpath.first=true -Dyarn.resourcemanager.address=c-sencha-s02:8032 -Dmapreduce.task.timeout=3000000 -Dhbase.client.scanner.caching=5000 -Dmapreduce.map.speculative=false -Dmapreduce.map.cpu.vcores=1 --libjars ${cp}"
