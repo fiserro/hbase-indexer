@@ -13,6 +13,7 @@ import com.socialbakers.broker.client.hbase.mapper.vo.HbaseResultMapperToVo;
 import com.socialbakers.broker.client.hbase.mapper.vo.HbaseVoPutter;
 import com.socialbakers.broker.client.hbase.mapper.vo.VoFieldMapping;
 import com.typesafe.config.Config;
+import com.typesafe.config.ConfigRenderOptions;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -20,6 +21,7 @@ import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.BinaryComparator;
 import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.filter.SingleColumnValueFilter;
+import org.apache.hadoop.hbase.util.ArrayUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.util.ToolRunner;
 import org.apache.zookeeper.KeeperException;
@@ -35,13 +37,9 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.lang.reflect.Field;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static java.util.concurrent.CompletableFuture.allOf;
 
@@ -60,9 +58,20 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 	protected OptionSpec<String> splitWindowsTableSpec;
 	protected OptionSpec<Boolean> dryRunSpec;
 	protected OptionSpec<String> commandSpec;
-	protected OptionSpec<String> windowSpec;
+	protected OptionSpec<String> v2RtIncludeWindowSpec;
+	protected OptionSpec<String> v2RtExcludeWindowSpec;
+	protected OptionSpec<String> rtIncludeWindowSpec;
+	protected OptionSpec<String> rtExcludeWindowSpec;
+	protected OptionSpec<String> batchIncludeWindowSpec;
+	protected OptionSpec<String> batchExcludeWindowSpec;
+	protected OptionSpec<String> reindexArgsSpec;
+	protected OptionSpec<String> structTypeSpec;
+	protected OptionSpec<Integer> batchSizeSpec;
 
 	private String[] args;
+	private String[] reindexArgs;
+	private String structType;
+	private Integer batchSize;
 	private HTable indexWindowsTable;
 	private KeyBuilder indexWindowKeyBuilder;
 	private HbaseVoPutter<IndexWindowEntry> indexWindowEntryHBasePutter;
@@ -116,9 +125,45 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 				.withRequiredArg().ofType(String.class)
 				.required();
 
-		windowSpec = parser
-				.acceptsAll(Lists.newArrayList("window"), "indexes window, comma separated")
+
+		v2RtIncludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("v2-rt-include-window"), "indexes window, comma separated")
 				.withRequiredArg().ofType(String.class);
+
+		v2RtExcludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("v2-rt-exclude-window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+		rtIncludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("rt-include-window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+		rtExcludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("rt-exclude-window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+		batchIncludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("batch-include-window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+		batchExcludeWindowSpec = parser
+				.acceptsAll(Lists.newArrayList("batch-exclude-window"), "indexes window, comma separated")
+				.withRequiredArg().ofType(String.class);
+
+
+		reindexArgsSpec = parser
+				.acceptsAll(Lists.newArrayList("reindex-args"), "reindex arguments")
+				.withRequiredArg().ofType(String.class);
+
+		structTypeSpec = parser
+				.acceptsAll(Lists.newArrayList("struct-type"), "structure type (post, comment)")
+				.withRequiredArg().ofType(String.class)
+				.required();
+
+		batchSizeSpec = parser
+				.acceptsAll(Lists.newArrayList("batch-size"), "load ES batch size")
+				.withRequiredArg().ofType(Integer.class)
+				.defaultsTo(1000);
 
 		dryRunSpec = parser
 				.acceptsAll(Lists.newArrayList("dry-run"), "dry run flag")
@@ -129,15 +174,27 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 	}
 
 	public void run() throws Exception {
+
 		System.out.println("run(): args: " + Arrays.toString(args));
 		run(args);
 	}
 
 	public void run(OptionSet options) throws Exception {
+		String reindexArgsText = reindexArgsSpec.value(options);
+		reindexArgs = reindexArgsText != null ? reindexArgsSpec.value(options).split(" ") : new String[0];
+
+		structType = structTypeSpec.value(options);
+		if (!structType.equals("post") && !structType.equals("comment")) {
+			throw new IllegalArgumentException("Unknown structure type: " + structType + ". Known are: post, comment");
+		}
+
+		batchSize = batchSizeSpec.value(options);
 
 		System.out.println("run(): options: " + options.specs());
 		dryRun = dryRunSpec.value(options);
 		System.out.println("dry run: " + dryRun);
+		System.out.println("structure type: " + structType);
+		System.out.println("batch size: " + batchSize);
 
 		super.run(options);
 
@@ -164,13 +221,14 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 
 			switch (command) {
 				case "addwindow":
-					String windowText = windowSpec.value(options);
-					if (windowText == null) {
-						throw new IllegalArgumentException("window not specified, use --window with comma separated index names");
-					}
-					String[] addWindow = Arrays.stream(windowText.split(","))
-							.map(String::trim).toArray(String[]::new);
-					addWindow(addWindow);
+					String[] v2RtIncludeWindow = getWindowFromText(v2RtIncludeWindowSpec, options);
+					String[] v2RtExcludeWindow = getWindowFromText(v2RtExcludeWindowSpec, options);
+					String[] rtIncludeWindow = getWindowFromText(rtIncludeWindowSpec, options);
+					String[] rtExcludeWindow = getWindowFromText(rtExcludeWindowSpec, options);
+					String[] batchIncludeWindow = getWindowFromText(batchIncludeWindowSpec, options);
+					String[] batchExcludeWindow = getWindowFromText(batchExcludeWindowSpec, options);
+
+					addWindow(v2RtIncludeWindow, v2RtExcludeWindow, rtIncludeWindow, rtExcludeWindow, batchIncludeWindow, batchExcludeWindow);
 					break;
 				case "split":
 					splitWindow();
@@ -188,23 +246,22 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		IndexWindowEntry indexWindowEntry = getIndexWindowEntry();
 		if (indexWindowEntry != null) {
 
-			String[] window = indexWindowEntry.window;
-			if (window.length == 0) {
-				System.out.println("no index window acquired, nothing to do");
-				return;
-			}
-			System.out.println("index window: " + Arrays.toString(window));
-
-			prepareConfigs(window);
+			prepareConfigs(indexWindowEntry);
 
 			try {
-				updateIndexer("fb_posts_v3", getIndexerConfigFile(FB_POSTS_V3));
-				updateIndexer("fb_comments_v3", getIndexerConfigFile(FB_COMMENTS_V3));
+				switch (structType) {
+					case "post":
+						updateIndexer("fb_posts_v3", getIndexerConfigFile(FB_POSTS_V3));
+						break;
+					case "comment":
+						updateIndexer("fb_comments_v3", getIndexerConfigFile(FB_COMMENTS_V3));
+						break;
+				}
 
 				List<Integer> results = new ArrayList<>();
 
 				allOf(
-						runReindexJob(getIndexerConfigFile(FB_POSTS_V3_BATCH), 0).thenApply((result) -> {
+						structType.equals("post") ? runReindexJob(getIndexerConfigFile(FB_POSTS_V3_BATCH), 0).thenApply((result) -> {
 							results.add(result);
 							if (result == 0) {
 								try {
@@ -216,12 +273,12 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 								}
 								return 0;
 							} else {
-								System.err.println("Reindex job result is "+result+". Not running fb_posts_v2 indexer update");
+								System.err.println("Reindex job result is " + result + ". Not running fb_posts_v2 indexer update");
 								return result;
 							}
-						}),
+						}) : CompletableFuture.supplyAsync(() -> 0),
 
-						runReindexJob(getIndexerConfigFile(FB_COMMENTS_V3_BATCH), 10000).thenApply((result) -> {
+						structType.equals("comment") ? runReindexJob(getIndexerConfigFile(FB_COMMENTS_V3_BATCH), 10000).thenApply((result) -> {
 							results.add(result);
 							if (result == 0) {
 								try {
@@ -233,15 +290,15 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 								}
 								return 0;
 							} else {
-								System.err.println("Reindex job result is "+result+". Not running fb_comments_v2 indexer update");
+								System.err.println("Reindex job result is " + result + ". Not running fb_comments_v2 indexer update");
 								return result;
 							}
-						})
+						}) : CompletableFuture.supplyAsync(() -> 0)
 
 				).join();
 
 				if (results.stream().anyMatch((result) -> result != 0)) {
-					throw new RuntimeException("Some result were not 0, results: "+Arrays.toString(results.toArray()));
+					throw new RuntimeException("Some result were not 0, results: " + Arrays.toString(results.toArray()));
 				}
 
 				indexWindowEntry.state = IndexWindowEntry.State.DONE.getState();
@@ -260,11 +317,9 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		}
 	}
 
-	private void addWindow(String[] window) throws Exception {
-		if (window.length == 0) {
-			System.out.println("window is empty, nothing to do");
-			return;
-		}
+	private void addWindow(String[] v2RtIncludeWindow, String[] v2RtExcludeWindow,
+						   String[] rtIncludeWindow, String[] rtExcludeWindow,
+						   String[] batchIncludeWindow, String[] batchExcludeWindow) throws Exception {
 
 		IndexWindowEntry prevIndexWindowEntry = getIndexWindowEntry();
 
@@ -272,8 +327,22 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		indexWindowEntry.state = IndexWindowEntry.State.TO_BE_DONE.getState();
 		indexWindowEntry.stateTime = System.currentTimeMillis();
 		indexWindowEntry.order = prevIndexWindowEntry != null ? (prevIndexWindowEntry.order + 1) : 1;
-		indexWindowEntry.window = window;
-		System.out.println("adding window " + Arrays.toString(window) + ", order " + indexWindowEntry.order);
+
+		indexWindowEntry.v2RtIncludeWindow = v2RtIncludeWindow;
+		indexWindowEntry.v2RtExcludeWindow = v2RtExcludeWindow;
+		indexWindowEntry.rtIncludeWindow = rtIncludeWindow;
+		indexWindowEntry.rtExcludeWindow = rtExcludeWindow;
+		indexWindowEntry.batchIncludeWindow = batchIncludeWindow;
+		indexWindowEntry.batchExcludeWindow = batchExcludeWindow;
+
+		System.out.println("adding window:\n" +
+				"  v2 rt include: " + Arrays.toString(v2RtIncludeWindow) +
+				"  v2 rt exclude: " + Arrays.toString(v2RtExcludeWindow) +
+				"  v3 rt include: " + Arrays.toString(rtIncludeWindow) +
+				"  v3 rt exclude: " + Arrays.toString(rtExcludeWindow) +
+				"  v3 batch include: " + Arrays.toString(batchIncludeWindow) +
+				"  v3 batch exclude: " + Arrays.toString(batchExcludeWindow) +
+				", order " + indexWindowEntry.order);
 		updateIndexWindowEntry(indexWindowEntry);
 	}
 
@@ -330,57 +399,130 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		return indexWindowEntry;
 	}
 
-	private void prepareConfigs(String[] window) throws Exception {
+	private void prepareConfigs(IndexWindowEntry indexWindowEntry) throws Exception {
 
-		// add includeIndexes to v3 realtime indexer
+		// add include, exclude to v3 realtime indexer
 		for (String v3IndexerNamePar : INDEXER_CONFIGS.get("v3")) {
 			String indexerName = conf.get(v3IndexerNamePar);
 
-			String[] v3Window = Arrays.stream(window).map(indexName ->
+			String[] v3IncludeWindow = indexWindowEntry.rtIncludeWindow != null ? Arrays.stream(indexWindowEntry.rtIncludeWindow).map(indexName ->
 					indexName.replaceAll("facebook_v2", indexerName)
-			).toArray(String[]::new);
+			).toArray(String[]::new) : null;
+			String[] v3ExcludeWindow = indexWindowEntry.rtExcludeWindow != null ? Arrays.stream(indexWindowEntry.rtExcludeWindow).map(indexName ->
+					indexName.replaceAll("facebook_v2", indexerName)
+			).toArray(String[]::new) : null;
 
-			System.out.println("" + indexerName + ": v3 RT include window add: " + Arrays.toString(v3Window));
+			System.out.println("" + indexerName + ": v3 RT window add:\n  include: " + Arrays.toString(v3IncludeWindow) + "\n  exclude: " + Arrays.toString(v3ExcludeWindow));
 
 			byte[] mlV3IndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
-				List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
-				if (includeIndexes == null) {
-					includeIndexes = new ArrayList<>();
-					loadESConf.put("includeIndexes", includeIndexes);
-				}
-				for (String indexName : v3Window) {
-					if (!includeIndexes.contains(indexName)) {
-						includeIndexes.add(indexName);
+				if (v3IncludeWindow != null && v3IncludeWindow.length > 0) {
+					if (v3IncludeWindow.length == 1 && "null".equals(v3IncludeWindow[0])) {
+						loadESConf.remove("includeIndexes");
+					} else {
+						List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
+						if (includeIndexes == null) {
+							includeIndexes = new ArrayList<>();
+							loadESConf.put("includeIndexes", includeIndexes);
+						}
+						for (String indexName : v3IncludeWindow) {
+							if (!indexName.matches("all|null") && !includeIndexes.contains(indexName)) {
+								includeIndexes.add(indexName);
+							}
+						}
 					}
 				}
+
+				if (v3ExcludeWindow != null && v3ExcludeWindow.length > 0) {
+					if (v3ExcludeWindow.length == 1 && "null".equals(v3ExcludeWindow[0])) {
+						loadESConf.remove("excludeIndexes");
+					} else {
+						List<String> excludeIndexes = (List<String>) loadESConf.get("excludeIndexes");
+						if (excludeIndexes == null) {
+							excludeIndexes = new ArrayList<>();
+							loadESConf.put("excludeIndexes", excludeIndexes);
+						}
+						excludeIndexes.clear();
+
+						for (String indexName : v3ExcludeWindow) {
+							if (indexName.matches("all|null") && !excludeIndexes.contains(indexName)) {
+								excludeIndexes.add(indexName);
+							}
+						}
+					}
+				}
+
 				return null;
 			});
 
 			writeBytesToFile(mlV3IndexerConf, getIndexerConfigFile(v3IndexerNamePar));
 		}
 
-		// set includeIndexes to v3 indexer reindex batch
+		// set include, exclude to v3 indexer reindex batch
 		for (String v3IndexerNamePar : INDEXER_CONFIGS.get("v3_batch")) {
 			String indexerName = conf.get(v3IndexerNamePar);
 
-			String[] v3Window = Arrays.stream(window).map(indexName ->
+			String[] v3IncludeWindow = indexWindowEntry.batchIncludeWindow != null ? Arrays.stream(indexWindowEntry.batchIncludeWindow).map(indexName ->
 					indexName.replaceAll("facebook_v2", indexerName)
-			).toArray(String[]::new);
+			).toArray(String[]::new) : null;
+			String[] v3ExcludeWindow = indexWindowEntry.batchExcludeWindow != null ? Arrays.stream(indexWindowEntry.batchExcludeWindow).map(indexName ->
+					indexName.replaceAll("facebook_v2", indexerName)
+			).toArray(String[]::new) : null;
 
-			System.out.println("" + indexerName + ": v3 batch include window: " + Arrays.toString(v3Window));
+			System.out.println("" + indexerName + ": v3 batch include window:\n  include: " + Arrays.toString(v3IncludeWindow) + "\n  exclude: " + Arrays.toString(v3ExcludeWindow));
 
 			byte[] mlV3BatchIndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
-				List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
-				if (includeIndexes == null) {
-					includeIndexes = new ArrayList<>();
-					loadESConf.put("includeIndexes", includeIndexes);
-				} else {
-					includeIndexes.clear();
-				}
-				for (String indexName : v3Window) {
-					if (!includeIndexes.contains(indexName)) {
-						includeIndexes.add(indexName);
+
+				if (v3IncludeWindow != null && v3IncludeWindow.length > 0) {
+
+					if (v3IncludeWindow.length == 1 && "null".equals(v3IncludeWindow[0])) {
+						loadESConf.remove("includeIndexes");
+					} else {
+
+						List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
+						if (includeIndexes == null) {
+							includeIndexes = new ArrayList<>();
+							loadESConf.put("includeIndexes", includeIndexes);
+						} else {
+							includeIndexes.clear();
+						}
+						for (String indexName : v3IncludeWindow) {
+							if (!indexName.matches("all|null") && !includeIndexes.contains(indexName)) {
+								includeIndexes.add(indexName);
+							}
+						}
 					}
+				}
+
+				if (v3ExcludeWindow != null && v3ExcludeWindow.length > 0) {
+
+					if (v3ExcludeWindow.length == 1 && "null".equals(v3ExcludeWindow[0])) {
+						loadESConf.remove("excludeIndexes");
+					} else {
+
+						List<String> excludeIndexes = (List<String>) loadESConf.get("excludeIndexes");
+						if (excludeIndexes == null) {
+							excludeIndexes = new ArrayList<>();
+							loadESConf.put("excludeIndexes", excludeIndexes);
+						} else {
+							excludeIndexes.clear();
+						}
+						for (String indexName : v3ExcludeWindow) {
+							if (!indexName.matches("all|null") && !excludeIndexes.contains(indexName)) {
+								excludeIndexes.add(indexName);
+							}
+						}
+					}
+				}
+
+				if (batchSize != null && loadESConf.containsKey("batchSize")) {
+					loadESConf.put("batchSize", batchSize);
+				}
+
+				return null;
+
+			}, (mlConfig) -> {
+				if ("fb_posts_v3".equals(indexerName)) {
+					addLabelsToConfig(mlConfig);
 				}
 				return null;
 			});
@@ -392,19 +534,49 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		for (String v2IndexerNamePar : INDEXER_CONFIGS.get("v2")) {
 			String indexerName = conf.get(v2IndexerNamePar);
 
-			System.out.println("" + indexerName + ": v2 RT exclude window add: " + Arrays.toString(window));
+			System.out.println("" + indexerName + ": v2 RT exclude window add:\n  include: " + Arrays.toString(indexWindowEntry.v2RtIncludeWindow) + "\n  " + Arrays.toString(indexWindowEntry.v2RtExcludeWindow));
 
 			byte[] mlV2IndexerConf = modifyLoadESCommand(indexerName, (loadESConf) -> {
-				List<String> excludeIndexes = (List<String>) loadESConf.get("excludeIndexes");
-				if (excludeIndexes == null) {
-					excludeIndexes = new ArrayList<>();
-					loadESConf.put("excludeIndexes", excludeIndexes);
-				}
-				for (String indexName : window) {
-					if (!excludeIndexes.contains(indexName)) {
-						excludeIndexes.add(indexName);
+
+				if (indexWindowEntry.v2RtExcludeWindow != null && indexWindowEntry.v2RtExcludeWindow.length > 0) {
+
+					if (indexWindowEntry.v2RtExcludeWindow.length == 1 && "null".equals(indexWindowEntry.v2RtExcludeWindow[0])) {
+						loadESConf.remove("excludeIndexes");
+					} else {
+						List<String> excludeIndexes = (List<String>) loadESConf.get("excludeIndexes");
+						if (excludeIndexes == null) {
+							excludeIndexes = new ArrayList<>();
+							loadESConf.put("excludeIndexes", excludeIndexes);
+						}
+
+						for (String indexName : indexWindowEntry.v2RtExcludeWindow) {
+							if (!indexName.matches("all|null") && !excludeIndexes.contains(indexName)) {
+								excludeIndexes.add(indexName);
+							}
+						}
 					}
 				}
+
+				if (indexWindowEntry.v2RtIncludeWindow != null && indexWindowEntry.v2RtIncludeWindow.length > 0) {
+
+					if (indexWindowEntry.v2RtIncludeWindow.length == 1 && "null".equals(indexWindowEntry.v2RtIncludeWindow[0])) {
+						loadESConf.remove("includeIndexes");
+					} else {
+						List<String> includeIndexes = (List<String>) loadESConf.get("includeIndexes");
+						if (includeIndexes == null) {
+							includeIndexes = new ArrayList<>();
+							loadESConf.put("includeIndexes", includeIndexes);
+						}
+
+						for (String indexName : indexWindowEntry.v2RtIncludeWindow) {
+							if (!indexName.matches("all|null") && !includeIndexes.contains(indexName)) {
+								includeIndexes.add(indexName);
+							}
+						}
+					}
+
+				}
+
 				return null;
 			});
 
@@ -418,28 +590,36 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 
 		CompletableFuture<Integer> future;
 
-		String[] jobArgs = new String[] {
+		String[] jobArgs = new String[]{
 				"--zk-host", conf.get("hbase.zookeeper.quorum"),
 				"--hbase-indexer-file", indexerConfig.getAbsolutePath(),
 				"--collection", "remove_this_please",
 				"--reducers", "0"//,
 				//"--log4j", "/opt/hbase-indexer/conf/log4j.properties"
+//				"-Dmapreduce.user.classpath.first", "true",
+//		 		"-Dmapreduce.job.user.classpath.first", "true"
 		};
+
+		String[] allArgs = new String[reindexArgs.length + jobArgs.length];
+		if (reindexArgs.length > 0) {
+			System.arraycopy(reindexArgs, 0, allArgs, 0, reindexArgs.length);
+		}
+		System.arraycopy(jobArgs, 0, allArgs, reindexArgs.length, jobArgs.length);
 
 		if (!dryRun) {
 			future = CompletableFuture.supplyAsync(() -> {
 
-				System.out.println("running reindex with arguments " + Arrays.toString(jobArgs));
+				System.out.println("running reindex with arguments " + Arrays.toString(allArgs));
 
 				int result;
 				try {
-					result = ToolRunner.run(conf, new HBaseMapReduceIndexerTool(), jobArgs);
+					result = ToolRunner.run(conf, new HBaseMapReduceIndexerTool(), allArgs);
 				} catch (Exception e) {
 					e.printStackTrace();
 					result = -1;
 				}
 
-				System.out.println("reindex with arguments " + Arrays.toString(jobArgs)+" result: "+result);
+				System.out.println("reindex with arguments " + Arrays.toString(allArgs) + " result: " + result);
 
 				// TODO: invazivni zmeny (delete old indexes) - mozna radsi delat rucne..
 
@@ -448,7 +628,7 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 
 		} else {
 			future = CompletableFuture.supplyAsync(() -> {
-				System.out.println("dry run: here will be reindex executed with arguments " + Arrays.toString(jobArgs));
+				System.out.println("dry run: here will be reindex executed with arguments " + Arrays.toString(allArgs));
 				return 0;
 			});
 		}
@@ -470,6 +650,15 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 		return new File("/tmp", indexerName + ".xml");
 	}
 
+	private String[] getWindowFromText(OptionSpec<String> spec, OptionSet options) {
+		String windowText = spec.value(options);
+		if (windowText == null) {
+			return null;
+		}
+		return Arrays.stream(windowText.split(","))
+				.map(String::trim).toArray(String[]::new);
+	}
+
 	private static byte[] getIndexWindowEntryQualifier(String classFieldName) throws NoSuchFieldException {
 		Field classField = IndexWindowEntry.class.getField(classFieldName);
 		VoFieldMapping mappingAnnotation = classField.getAnnotation(VoFieldMapping.class);
@@ -483,6 +672,10 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 	}
 
 	private byte[] modifyLoadESCommand(String indexerName, Function<Map<String, Object>, Void> modifier) throws InterruptedException, IOException, KeeperException, TransformerException, IndexerNotFoundException {
+		return modifyLoadESCommand(indexerName, modifier, null);
+	}
+
+	private byte[] modifyLoadESCommand(String indexerName, Function<Map<String, Object>, Void> modifier, Function<MorphlineConfigUtil, Void> mlCb) throws InterruptedException, IOException, KeeperException, TransformerException, IndexerNotFoundException {
 
 		IndexerDefinition indexerDefinition = model.getFreshIndexer(indexerName);
 		byte[] configurationDocBytes = indexerDefinition.getConfiguration();
@@ -495,10 +688,46 @@ public class FbIndexSplitCLI extends BaseIndexCli {
 			modifier.apply(loadElasticsearch);
 			return conf;
 		});
+		if (mlCb != null) mlCb.apply(mlConfig);
 		Config modifiedConfig = mlConfig.modifyConfig(null);
+		ConfigRenderOptions renderOptions = ConfigRenderOptions.defaults();
+		renderOptions.setComments(false);
+		renderOptions.setOriginComments(false);
+		System.out.println("modified morphline for indexer " + indexerName + ":\n" + modifiedConfig.root().render(renderOptions));
+		System.out.println("---");
 		MorphlineConfigUtil.setDocMorphline(configurationDoc, modifiedConfig);
 
 		return writeDoc(configurationDoc);
+	}
+
+	private void addLabelsToConfig(MorphlineConfigUtil morphlineConfigUtil) {
+		// add label mapping { inputColumn : "d:sbks.labels", outputField : sbks.labels, type : "byte[]" }
+		morphlineConfigUtil.addCommandModifier("extractPhoenixCells", (c, _void) -> {
+			Map<String, Object> extractPhoenixCells = (Map<String, Object>) c.get("extractPhoenixCells");
+			List<Map<String, Object>> mappings = (List<Map<String, Object>>) extractPhoenixCells.get("mappings");
+			Map<String, Object> labelsMapping = new LinkedHashMap<>();
+			labelsMapping.put("inputColumn", "d:sbks.labels");
+			labelsMapping.put("outputField", "sbks.labels");
+			labelsMapping.put("type", "byte[]");
+
+			mappings.add(labelsMapping);
+			return c;
+		});
+
+		// add labels byte to String List mapping command
+		// { toPhoenixObject { fields : [ { field : sbks.labels, type : VARCHAR_ARRAY, arrayStrategy : ONE_LIST } ] } }
+		// TODO onlyOnce use here is base on command name only, which is not what is wanted - commands should be added only once based on its content too!
+		// e.g. toPhoenixObject { field abc }, add toPhoenixObject { field xyz } will not be added
+		Map<String, Object> labelsToList = new LinkedHashMap<>();
+		labelsToList.put("toPhoenixObject", new LinkedHashMap<String, Object>() {{
+			put("fields", Collections.singletonList(new LinkedHashMap<String, Object>() {{
+				put("field", "sbks.labels");
+				put("type", "VARCHAR_ARRAY");
+				put("arrayStrategy", "ONE_LIST");
+			}}));
+		}});
+
+		morphlineConfigUtil.addCommand(labelsToList, "extractPhoenixCells");
 	}
 
 	private static Document readDoc(byte[] documentBytes) {

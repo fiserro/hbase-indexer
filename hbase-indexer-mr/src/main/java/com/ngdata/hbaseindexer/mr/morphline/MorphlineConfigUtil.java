@@ -1,10 +1,6 @@
 package com.ngdata.hbaseindexer.mr.morphline;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ngdata.hbaseindexer.mr.zookeeper.ZkConfigAccessor;
 import com.typesafe.config.*;
-
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -14,7 +10,6 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
-
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;

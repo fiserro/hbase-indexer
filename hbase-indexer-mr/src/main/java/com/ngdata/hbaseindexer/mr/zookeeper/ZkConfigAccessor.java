@@ -15,10 +15,13 @@ import java.util.concurrent.CountDownLatch;
 public class ZkConfigAccessor {
 
 	public byte[] read(String zkQuorum, String zkPath) throws InterruptedException, KeeperException, IOException {
-		CountDownLatch connSignal = new CountDownLatch(0);
-		ZooKeeper zk = new ZooKeeper(zkQuorum, 1000, event -> {
-			if (event.getState() == Watcher.Event.KeeperState.SyncConnected) {
-				connSignal.countDown();
+		final CountDownLatch connSignal = new CountDownLatch(0);
+		ZooKeeper zk = new ZooKeeper(zkQuorum, 1000, new Watcher() {
+			@Override
+			public void process(WatchedEvent watchedEvent) {
+				if (watchedEvent.getState() == Watcher.Event.KeeperState.SyncConnected) {
+					connSignal.countDown();
+				}
 			}
 		});
 		connSignal.await();
@@ -29,9 +32,12 @@ public class ZkConfigAccessor {
 	}
 
 	public void write(byte[] bytes, String nodePath, String zkQuorum) throws Exception {
-		try (CuratorFramework client = CuratorFrameworkFactory.newClient(zkQuorum, new RetryForever(1000))) {
+		CuratorFramework client = CuratorFrameworkFactory.newClient(zkQuorum, new RetryForever(1000));
+		try {
 			client.start();
 			write(bytes, nodePath, client);
+		} finally {
+			client.close();
 		}
 	}
 

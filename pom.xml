@@ -22,7 +22,7 @@
 		<version.search>1.2.0</version.search>
 		<version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
 		<version.jersey>1.19</version.jersey>
-		<version.sbks-morphlines>0.5.3</version.sbks-morphlines>
+		<version.sbks-morphlines>0.5.5</version.sbks-morphlines>
 		<version.hbase-sbks>0.1.26</version.hbase-sbks>
 
 		<!-- Tells maven plugins what file encoding to use -->
@@ -663,50 +663,50 @@
 
 		<pluginManagement>
 			<plugins>
-				<plugin>
-					<groupId>org.apache.rat</groupId>
-					<artifactId>apache-rat-plugin</artifactId>
-					<version>0.8</version>
-					<configuration>
-						<excludes>
-							<exclude>**/.*</exclude>
-							<exclude>**/target/**</exclude>
-							<exclude>**/README.md</exclude>
-							<exclude>**/readme.txt</exclude>
-							<exclude>**/*log4j*.properties</exclude>
-							<exclude>.git/**</exclude>
-							<exclude>.gitignore</exclude>
-							<exclude>.repository/</exclude>
-							<exclude>.idea/**</exclude>
-							<exclude>**/*.iml</exclude>
-							<exclude>**/.settings/**</exclude>
-							<exclude>**/resources/*.txt</exclude>
-							<exclude>**/resources/**/*.txt</exclude>
-							<exclude>**/resources/**/*.xml</exclude>
-							<exclude>**/conf/*</exclude>
-							<exclude>**/src/it/resources/**</exclude>
-							<exclude>**/META-INF/services/**</exclude>
-							<exclude>**/ForkedAlphaNumericComparator.java</exclude>
-							<!-- FB index split -->
-							<exclude>**/bin/fb_index_split.sh</exclude>
-							<exclude>**/com/ngdata/hbaseindexer/mr/FbIndexSplitCLI.java</exclude>
-							<exclude>**/com/ngdata/hbaseindexer/mr/IndexWindowEntry.java</exclude>
-							<exclude>**/com/ngdata/hbaseindexer/mr/IndexWindowEntryKeyBuilder.java</exclude>
-							<exclude>**/com/ngdata/hbaseindexer/mr/morphline/MorphlineConfigUtil.java</exclude>
-							<exclude>**/com/ngdata/hbaseindexer/mr/zookeeper/ZkConfigAccessor.java</exclude>
-							<!-- MIT -->
-						</excludes>
-					</configuration>
-					<executions>
-						<execution>
-							<id>rat-check</id>
-							<phase>test</phase>
-							<goals>
-								<goal>check</goal>
-							</goals>
-						</execution>
-					</executions>
-				</plugin>
+				<!--<plugin>-->
+					<!--<groupId>org.apache.rat</groupId>-->
+					<!--<artifactId>apache-rat-plugin</artifactId>-->
+					<!--<version>0.8</version>-->
+					<!--<configuration>-->
+						<!--<excludes>-->
+							<!--<exclude>**/.*</exclude>-->
+							<!--<exclude>**/target/**</exclude>-->
+							<!--<exclude>**/README.md</exclude>-->
+							<!--<exclude>**/readme.txt</exclude>-->
+							<!--<exclude>**/*log4j*.properties</exclude>-->
+							<!--<exclude>.git/**</exclude>-->
+							<!--<exclude>.gitignore</exclude>-->
+							<!--<exclude>.repository/</exclude>-->
+							<!--<exclude>.idea/**</exclude>-->
+							<!--<exclude>**/*.iml</exclude>-->
+							<!--<exclude>**/.settings/**</exclude>-->
+							<!--<exclude>**/resources/*.txt</exclude>-->
+							<!--<exclude>**/resources/**/*.txt</exclude>-->
+							<!--<exclude>**/resources/**/*.xml</exclude>-->
+							<!--<exclude>**/conf/*</exclude>-->
+							<!--<exclude>**/src/it/resources/**</exclude>-->
+							<!--<exclude>**/META-INF/services/**</exclude>-->
+							<!--<exclude>**/ForkedAlphaNumericComparator.java</exclude>-->
+							<!--&lt;!&ndash; FB index split &ndash;&gt;-->
+							<!--<exclude>**/bin/fb_index_split.sh</exclude>-->
+							<!--<exclude>**/com/ngdata/hbaseindexer/mr/FbIndexSplitCLI.java</exclude>-->
+							<!--<exclude>**/com/ngdata/hbaseindexer/mr/IndexWindowEntry.java</exclude>-->
+							<!--<exclude>**/com/ngdata/hbaseindexer/mr/IndexWindowEntryKeyBuilder.java</exclude>-->
+							<!--<exclude>**/com/ngdata/hbaseindexer/mr/morphline/MorphlineConfigUtil.java</exclude>-->
+							<!--<exclude>**/com/ngdata/hbaseindexer/mr/zookeeper/ZkConfigAccessor.java</exclude>-->
+							<!--&lt;!&ndash; MIT &ndash;&gt;-->
+						<!--</excludes>-->
+					<!--</configuration>-->
+					<!--<executions>-->
+						<!--<execution>-->
+							<!--<id>rat-check</id>-->
+							<!--<phase>test</phase>-->
+							<!--<goals>-->
+								<!--<goal>check</goal>-->
+							<!--</goals>-->
+						<!--</execution>-->
+					<!--</executions>-->
+				<!--</plugin>-->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-source-plugin</artifactId>
@@ -730,8 +730,8 @@
 				<plugin>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
-						<source>1.6</source>
-						<target>1.6</target>
+						<source>1.8</source>
+						<target>1.8</target>
 						<encoding>UTF-8</encoding>
 					</configuration>
 				</plugin>

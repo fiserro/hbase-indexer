@@ -24,9 +24,39 @@ public class IndexWindowEntry {
 
 	@VoFieldMapping(
 			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
-			qualifier = "window"
+			qualifier = "batch_include_window"
 	)
-	public String[] window;
+	public String[] batchIncludeWindow;
+
+	@VoFieldMapping(
+			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
+			qualifier = "batch_exclude_window"
+	)
+	public String[] batchExcludeWindow;
+
+	@VoFieldMapping(
+			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
+			qualifier = "rt_include_window"
+	)
+	public String[] rtIncludeWindow;
+
+	@VoFieldMapping(
+			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
+			qualifier = "rt_exclude_window"
+	)
+	public String[] rtExcludeWindow;
+
+	@VoFieldMapping(
+			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
+			qualifier = "v2_rt_include_window"
+	)
+	public String[] v2RtIncludeWindow;
+
+	@VoFieldMapping(
+			sqlType = Types.VARCHAR + PDataType.ARRAY_TYPE_BASE,
+			qualifier = "v2_rt_exclude_window"
+	)
+	public String[] v2RtExcludeWindow;
 
 	@VoFieldMapping(
 			sqlType = Types.BIGINT,
