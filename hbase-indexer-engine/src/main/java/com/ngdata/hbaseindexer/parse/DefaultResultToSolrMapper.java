@@ -155,4 +155,9 @@ public class DefaultResultToSolrMapper implements ResultToSolrMapper {
         }
     }
 
+    @Override
+    public void cleanup() {
+
+    }
+
 }

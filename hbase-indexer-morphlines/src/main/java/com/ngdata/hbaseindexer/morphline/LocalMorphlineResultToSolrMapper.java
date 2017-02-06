@@ -227,6 +227,11 @@ final class LocalMorphlineResultToSolrMapper implements ResultToSolrMapper, Conf
         }
     }
 
+    @Override
+    public void cleanup() {
+        Notifications.notifyShutdown(morphline);
+    }
+
     private boolean getBooleanParameter(String name, boolean defaultValue, Map<String, String> map) {
         String value = map.get(name);
         return value == null ? defaultValue : "TRUE".equalsIgnoreCase(value);

@@ -62,7 +62,10 @@ public interface ResultToSolrMapper {
      * should include unique document ids.</p>
      *
      * @param result the HBase {@code Result} object to be mapped to {@code SolrInputDocument}(s)
-     * @param solrDocumentWriter writer to write new Solr documents to
+     * @param solrUpdateWriter writer to write new Solr documents to
      */
     void map(Result result, SolrUpdateWriter solrUpdateWriter);
+
+    default void cleanup() {
+    }
 }

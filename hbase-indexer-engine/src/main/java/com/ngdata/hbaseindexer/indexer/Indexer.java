@@ -215,6 +215,10 @@ public abstract class Indexer {
         IndexerMetricsUtil.shutdownMetrics(indexerName);
     }
 
+    public void cleanup() {
+        mapper.cleanup();
+    }
+
     static class RowBasedIndexer extends Indexer {
 
         private HTablePool tablePool;

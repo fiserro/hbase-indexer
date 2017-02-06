@@ -322,6 +322,8 @@ public class HBaseIndexerMapper extends TableMapper<Text, SolrInputDocumentWrita
             throw new RuntimeException(e);
         }
 
+        indexer.cleanup();
+
         copyIndexingMetricsToCounters(context);
         copyIndexingMetrics3ToCounters(context);
     }

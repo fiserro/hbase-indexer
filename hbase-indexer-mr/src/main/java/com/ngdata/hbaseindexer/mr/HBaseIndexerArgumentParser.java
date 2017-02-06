@@ -169,6 +169,7 @@ class HBaseIndexerArgumentParser {
                       "Example: yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 
         Argument regionSplit = scanArgumentGroup.addArgument("--region-split")
+                .setDefault("-1")
                 .metavar("STRING")
                 .help("How many time split each region. 1 splits one time to two splits.");
 

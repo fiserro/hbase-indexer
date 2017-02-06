@@ -46,4 +46,9 @@ public class TestResultToSolrMapper implements ResultToSolrMapper {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
+    @Override
+    public void cleanup() {
+
+    }
+
 }
