@@ -47,6 +47,6 @@ cp -p -R hbase-indexer-*/hbase-indexer-*/* opt/hbase-indexer
 #../../nxfetch.sh -i com.socialbakers.protobuf:sbks-protos:0.1-protobuf-2.5.0-SNAPSHOT > opt/hbase-indexer/lib/sbks-protos-0.1.jar
 #../../nxfetch.sh -i com.sematext:kite-morphlines-elasticsearch:0.1.1-SBKS-FORK > opt/hbase-indexer/lib/kite-morphlines-elasticsearch-0.1.1.jar
 
-fpm --before-install preinst --workdir ~/tmp/fpm -s dir -t deb --config-files opt/hbase-indexer/conf/ -n hbase-indexer -v $VERSION~sbks~$SBKS_VERSION -a amd64 -C . opt/hbase-indexer
+fpm --before-install preinst -s dir -t deb --config-files opt/hbase-indexer/conf/ -n hbase-indexer -v $VERSION~sbks~$SBKS_VERSION -a amd64 -C . opt/hbase-indexer
 
 cleanup
