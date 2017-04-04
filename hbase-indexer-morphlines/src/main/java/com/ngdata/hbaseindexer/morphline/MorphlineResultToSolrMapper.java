@@ -149,4 +149,8 @@ public final class MorphlineResultToSolrMapper implements ResultToSolrMapper, Co
     public void cleanup() {
         localMorphlineMapper.get().cleanup();
     }
+
+    public void stop() {
+        cleanup();
+    }
 }
