@@ -21,6 +21,7 @@
     <version.search.hbase98>1.0.0-cdh5.0.0</version.search.hbase98>
     <version.jersey>1.19</version.jersey>
     <version.sbks-morphlines>0.5.9</version.sbks-morphlines>
+    <version.protos>0.2.17-protobuf-2.5.0</version.protos>
 
     <!-- Tells maven plugins what file encoding to use -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
