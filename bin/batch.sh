@@ -31,7 +31,7 @@ fi
 
 TEMP_FILE=/tmp/indexer_conf.xml
 
-./bin/zkmorph.sh $1 $2 $TEMP_FILE
+./bin/zkmorph.sh $1 $2 $TEMP_FILE || exit $?
 
 cp=$(find `pwd` -name '*.jar' | tr '\n', ',')
 #cp=$cp$(hbase mapredcp 2>&1 | tail -1 | tr ':' ',')

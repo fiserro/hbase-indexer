@@ -36,7 +36,7 @@ fi
 
 echo "writing to "$3
 
-echo "<indexer table=\""$1"\" mapper=\"com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper\" read-row=\"$READ_ROW\">" > $3
+echo "<indexer table=\""$1"\" mapper=\"com.ngdata.hbaseindexer.morphline.MorphlineResultToSolrMapper\" read-row=\"$READ_ROW\">" > $3 || exit $?
 echo "  <param name=\"morphlineString\" value=\"" >> $3
 cat $2 | sed 's/\&/\&#38;/g;s/\"/\&quot;/g;s/</\&lt;/g;s/>/\&gt;/g;s/\t/\&#9;/g' | sed -e ':a' -e 'N' -e '$!ba' -e 's/\n/\&#10;/g' >> $3
 echo "\"/>" >> $3
